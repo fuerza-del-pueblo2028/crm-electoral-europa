@@ -1,0 +1,368 @@
+
+"use client";
+
+import { useState, useEffect, useCallback } from "react";
+import { SECCIONALES, Affiliate } from "@/lib/mockData";
+import { Search, Filter, CheckCircle, XCircle, Loader2, Plus } from "lucide-react";
+import { AffiliateModal } from "@/components/AffiliateModal";
+import { NewAffiliateModal } from "@/components/NewAffiliateModal";
+import { supabase } from "@/lib/supabase";
+
+// Debounce helper
+function useDebounce<T>(value: T, delay: number): T {
+    const [debouncedValue, setDebouncedValue] = useState<T>(value);
+    useEffect(() => {
+        const handler = setTimeout(() => setDebouncedValue(value), delay);
+        return () => clearTimeout(handler);
+    }, [value, delay]);
+    return debouncedValue;
+}
+
+export default function AffiliatesPage() {
+    // Filter States
+    const [searchTerm, setSearchTerm] = useState("");
+    const debouncedSearchTerm = useDebounce(searchTerm, 500); // 500ms delay to avoid slamming DB
+    const [selectedSeccional, setSelectedSeccional] = useState("Todas");
+    const [selectedRole, setSelectedRole] = useState("Todos");
+    const [selectedStatus, setSelectedStatus] = useState("Todos");
+    const [sortOrder, setSortOrder] = useState("newest");
+
+    // UI/Data States
+    const [selectedAffiliate, setSelectedAffiliate] = useState<Affiliate | null>(null);
+    const [isMounted, setIsMounted] = useState(false);
+    const [isNewModalOpen, setIsNewModalOpen] = useState(false);
+    const [affiliates, setAffiliates] = useState<Affiliate[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [totalItems, setTotalItems] = useState(0);
+
+    // Pagination
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 12;
+
+    useEffect(() => {
+        const token = localStorage.getItem("auth_token");
+        if (!token) {
+            window.location.href = "/login";
+            return;
+        }
+        setIsMounted(true);
+    }, []);
+
+    // Reset page to 1 only when filters change (not when page changes)
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [debouncedSearchTerm, selectedSeccional, selectedRole, selectedStatus, sortOrder]);
+
+    const fetchAffiliates = useCallback(async () => {
+        if (!isMounted) return;
+        setLoading(true);
+
+        try {
+            // Start building the query
+            let query = supabase
+                .from('afiliados')
+                .select('*', { count: 'exact' });
+
+            // 1. Apply Filters
+            if (debouncedSearchTerm) {
+                // Search across Name, Lastname, Cedula
+                // Note: ILIKE is case insensitive. We construct an OR filter.
+                // Syntax: column.ilike.val,column.ilike.val
+                const term = `%${debouncedSearchTerm}%`;
+                query = query.or(`nombre.ilike.${term},apellidos.ilike.${term},cedula.ilike.${term}`);
+            }
+
+            if (selectedSeccional !== "Todas") {
+                query = query.eq('seccional', selectedSeccional);
+            }
+
+            if (selectedRole !== "Todos") {
+                query = query.eq('role', selectedRole);
+            }
+
+            if (selectedStatus !== "Todos") {
+                query = query.eq('validado', selectedStatus === "Validado");
+            }
+
+            // 2. Apply Sorting
+            switch (sortOrder) {
+                case "newest":
+                    query = query.order('created_at', { ascending: false });
+                    break;
+                case "oldest":
+                    query = query.order('created_at', { ascending: true });
+                    break;
+                case "a-z":
+                    query = query.order('nombre', { ascending: true });
+                    break;
+                case "z-a":
+                    query = query.order('nombre', { ascending: false });
+                    break;
+                default:
+                    query = query.order('created_at', { ascending: false });
+            }
+
+            // 3. Apply Pagination (Range is 0-indexed)
+            const from = (currentPage - 1) * itemsPerPage;
+            const to = from + itemsPerPage - 1;
+            query = query.range(from, to);
+
+            // Execute
+            const { data, error, count } = await query;
+
+            if (error) throw error;
+
+            if (data) {
+                const mappedData: Affiliate[] = data.map(item => ({
+                    id: item.id,
+                    name: item.nombre,
+                    lastName: item.apellidos,
+                    cedula: item.cedula,
+                    seccional: item.seccional,
+                    validated: item.validado,
+                    role: item.role as any,
+                    email: item.email || '',
+                    foto_url: item.foto_url,
+                    fecha_nacimiento: item.fecha_nacimiento,
+                    telefono: item.telefono
+                }));
+                setAffiliates(mappedData);
+                setTotalItems(count || 0);
+            }
+        } catch (error) {
+            console.error("Error loading affiliates:", error);
+        } finally {
+            setLoading(false);
+        }
+    }, [isMounted, debouncedSearchTerm, selectedSeccional, selectedRole, selectedStatus, sortOrder, currentPage]);
+
+    // Trigger fetch when parameters change
+    useEffect(() => {
+        fetchAffiliates();
+    }, [fetchAffiliates]);
+
+    if (!isMounted) return null;
+
+    const totalPages = Math.ceil(totalItems / itemsPerPage);
+    const startRecord = (currentPage - 1) * itemsPerPage + 1;
+    const endRecord = Math.min(startRecord + itemsPerPage - 1, totalItems);
+
+    return (
+        <div className="p-8 space-y-6">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div>
+                    <h1 className="text-3xl font-bold text-[#005c2b]">Afiliados</h1>
+                    <p className="text-gray-500 italic">Gestión del padrón electoral Europa</p>
+                </div>
+                <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto items-center">
+                    <button
+                        onClick={() => setIsNewModalOpen(true)}
+                        className="bg-fp-green text-white px-4 py-2.5 rounded-xl font-black uppercase tracking-widest hover:bg-fp-green-dark transition-all flex items-center shadow-lg hover:shadow-green-900/20 active:scale-95 whitespace-nowrap text-xs"
+                    >
+                        <Plus size={18} className="mr-2" />
+                        Nuevo Afiliado
+                    </button>
+
+                    <div className="relative group">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-fp-green transition-colors" size={18} />
+                        <input
+                            type="text"
+                            placeholder="Buscar cedula o nombre..."
+                            className="pl-10 pr-4 py-2.5 border border-gray-100 bg-white rounded-xl focus:outline-none focus:ring-2 focus:ring-fp-green w-full sm:w-64 transition-all shadow-sm"
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                        />
+                    </div>
+                    <div className="flex gap-2 w-full sm:w-auto overflow-x-auto pb-2 sm:pb-0">
+                        {/* Role Filter */}
+                        <div className="relative group min-w-[140px]">
+                            <select
+                                className="w-full pl-4 pr-8 py-2.5 border border-gray-100 bg-white rounded-xl focus:outline-none focus:ring-2 focus:ring-fp-green appearance-none shadow-sm font-medium text-gray-700 text-sm"
+                                value={selectedRole}
+                                onChange={(e) => setSelectedRole(e.target.value)}
+                            >
+                                <option value="Todos">Rol: Todos</option>
+                                <option value="Miembro">Miembro</option>
+                                <option value="Operador">Operador</option>
+                                <option value="Admin">Admin</option>
+                            </select>
+                        </div>
+
+                        {/* Status Filter */}
+                        <div className="relative group min-w-[140px]">
+                            <select
+                                className="w-full pl-4 pr-8 py-2.5 border border-gray-100 bg-white rounded-xl focus:outline-none focus:ring-2 focus:ring-fp-green appearance-none shadow-sm font-medium text-gray-700 text-sm"
+                                value={selectedStatus}
+                                onChange={(e) => setSelectedStatus(e.target.value)}
+                            >
+                                <option value="Todos">Estado: Todos</option>
+                                <option value="Validado">Validado</option>
+                                <option value="Pendiente">Pendiente</option>
+                            </select>
+                        </div>
+
+                        {/* Seccional Filter */}
+                        <div className="relative group min-w-[160px]">
+                            <Filter className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-fp-green transition-colors pointer-events-none" size={16} />
+                            <select
+                                className="w-full pl-9 pr-8 py-2.5 border border-gray-100 bg-white rounded-xl focus:outline-none focus:ring-2 focus:ring-fp-green appearance-none shadow-sm font-medium text-gray-700 text-sm"
+                                value={selectedSeccional}
+                                onChange={(e) => setSelectedSeccional(e.target.value)}
+                            >
+                                <option value="Todas">Seccional: Todas</option>
+                                {SECCIONALES.map(s => <option key={s} value={s}>{s}</option>)}
+                            </select>
+                        </div>
+
+                        {/* Sort Filter */}
+                        <div className="relative group min-w-[140px]">
+                            <select
+                                className="w-full pl-4 pr-8 py-2.5 border border-gray-100 bg-white rounded-xl focus:outline-none focus:ring-2 focus:ring-fp-green appearance-none shadow-sm font-medium text-gray-700 text-sm"
+                                value={sortOrder}
+                                onChange={(e) => setSortOrder(e.target.value)}
+                            >
+                                <option value="newest">Más Recientes</option>
+                                <option value="oldest">Más Antiguos</option>
+                                <option value="a-z">Nombre (A-Z)</option>
+                                <option value="z-a">Nombre (Z-A)</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {loading ? (
+                <div className="flex flex-col justify-center items-center py-40 space-y-4">
+                    <Loader2 className="animate-spin text-fp-green" size={48} />
+                    <span className="text-gray-400 font-black uppercase tracking-widest text-xs">Sincronizando Padrón...</span>
+                </div>
+            ) : (
+                <>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                        {affiliates.map(affiliate => (
+                            <button
+                                key={affiliate.id}
+                                onClick={() => setSelectedAffiliate(affiliate)}
+                                className="bg-white p-6 rounded-2xl shadow-sm border border-gray-50 hover:shadow-xl hover:border-fp-green transition-all text-left group flex flex-col items-center space-y-4 relative overflow-hidden"
+                            >
+                                <div className="absolute top-0 right-0 w-16 h-16 bg-fp-green/5 -mr-8 -mt-8 rounded-full group-hover:bg-fp-green/10 transition-colors"></div>
+
+                                <div className="w-24 h-24 rounded-full bg-gray-50 overflow-hidden border-2 border-white shadow-md group-hover:border-fp-green transition-all flex items-center justify-center">
+                                    <img
+                                        src={affiliate.foto_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${affiliate.name}`}
+                                        alt={affiliate.name}
+                                        className="w-full h-full object-cover"
+                                    />
+                                </div>
+                                <div className="text-center w-full space-y-1">
+                                    <h3 className="font-black text-gray-900 group-hover:text-fp-green uppercase italic tracking-tighter truncate leading-none">
+                                        {affiliate.name} {affiliate.lastName}
+                                    </h3>
+                                    <p className="text-[10px] text-gray-400 font-mono tracking-widest">{affiliate.cedula}</p>
+                                </div>
+                                <div className="w-full pt-4 border-t border-gray-50 flex justify-between items-center text-[10px] font-black uppercase tracking-widest">
+                                    <span className="text-gray-400">{affiliate.seccional}</span>
+                                    {affiliate.validated ? (
+                                        <div className="flex items-center text-green-600 space-x-1">
+                                            <CheckCircle size={14} />
+                                            <span>Validado</span>
+                                        </div>
+                                    ) : (
+                                        <div className="flex items-center text-orange-400 space-x-1">
+                                            <XCircle size={14} />
+                                            <span>Pendiente</span>
+                                        </div>
+                                    )}
+                                </div>
+                            </button>
+                        ))}
+                    </div>
+
+                    {affiliates.length === 0 ? (
+                        <div className="py-24 text-center space-y-4">
+                            <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mx-auto">
+                                <Search size={32} className="text-gray-200" />
+                            </div>
+                            <p className="text-gray-400 font-black uppercase tracking-widest text-xs italic">
+                                No se encontraron resultados en el padrón
+                            </p>
+                        </div>
+                    ) : (
+                        /* Controles de Paginación */
+                        <div className="flex flex-col sm:flex-row justify-between items-center bg-white p-4 rounded-2xl border border-gray-50 shadow-sm gap-4">
+                            <div className="text-xs font-bold text-gray-400 uppercase tracking-widest">
+                                Mostrando {startRecord} - {endRecord} de {totalItems}
+                            </div>
+
+                            <div className="flex items-center space-x-2">
+                                <button
+                                    disabled={currentPage === 1}
+                                    onClick={() => setCurrentPage(prev => prev - 1)}
+                                    className="px-4 py-2 border border-gray-100 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-gray-50 disabled:opacity-30 transition-all active:scale-95"
+                                >
+                                    Anterior
+                                </button>
+
+                                <div className="flex items-center space-x-1">
+                                    {/* Smart Pagination: Show limited pages if too many */}
+                                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                                        // Logic to show pages around current page could be complex, keeping simple 1-5 or dynamic start for now.
+                                        // Actually simplest for user is just showing current window or basics.
+                                        // Let's do a simple consistent sliding window or just basic list if small.
+                                        // If large, implementing full pagination logic (1 ... 4 5 6 ... 10) is better but strictly just mapping all might be too much if 100 pages.
+                                        // Given urgency, let's just show Previous/Next mostly, and maybe current page number.
+                                        // But the UI requested "page numbers". Let's show a reduced set.
+
+                                        let pageNum = i + 1;
+                                        if (totalPages > 5 && currentPage > 3) {
+                                            pageNum = currentPage - 2 + i;
+                                        }
+                                        if (pageNum > totalPages) return null;
+
+                                        return (
+                                            <button
+                                                key={pageNum}
+                                                onClick={() => setCurrentPage(pageNum)}
+                                                className={`w-8 h-8 rounded-lg text-xs font-black transition-all ${currentPage === pageNum
+                                                    ? "bg-fp-green text-white shadow-lg shadow-green-900/20 scale-110"
+                                                    : "text-gray-400 hover:bg-gray-50"
+                                                    }`}
+                                            >
+                                                {pageNum}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+
+                                <button
+                                    disabled={currentPage === totalPages}
+                                    onClick={() => setCurrentPage(prev => prev + 1)}
+                                    className="px-4 py-2 border border-gray-100 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-gray-50 disabled:opacity-30 transition-all active:scale-95"
+                                >
+                                    Siguiente
+                                </button>
+                            </div>
+                        </div>
+                    )}
+                </>
+            )}
+
+            <AffiliateModal
+                isOpen={!!selectedAffiliate}
+                onClose={() => setSelectedAffiliate(null)}
+                affiliate={selectedAffiliate}
+                onDelete={() => {
+                    // Force refresh
+                    fetchAffiliates();
+                    setSelectedAffiliate(null);
+                }}
+            />
+
+            <NewAffiliateModal
+                isOpen={isNewModalOpen}
+                onClose={() => setIsNewModalOpen(false)}
+                onSuccess={() => fetchAffiliates()}
+            />
+        </div>
+    );
+}

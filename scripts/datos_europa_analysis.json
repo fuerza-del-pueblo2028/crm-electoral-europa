@@ -1,0 +1,895 @@
+{
+  "Seccional de Madrid": {
+    "totalRows": 999,
+    "firstRows": [
+      [
+        "",
+        "",
+        "RECINTOS ELECTORALES SECCIONAL DE MADRID 2024",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ],
+      [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ],
+      [
+        "",
+        "Número Recinto",
+        "RECINTOS",
+        "ZONA",
+        "DIRECCIÓN",
+        "ELECTORES",
+        "TOTAL DE COLEGIOS",
+        "COLEGIOS N°"
+      ],
+      [
+        1,
+        "00063",
+        "QUINTA DE SERVAJTE SALA DE ESPOSICIONES DE LA JUNTA MUNICIPAL DISTRITO 1 (ALCALÁ) 00063",
+        "ALCALÁ",
+        "C/ Navarro y Ledesma 1,3.28007",
+        1156,
+        2,
+        "230 y 231"
+      ],
+      [
+        2,
+        "00064",
+        "CEIP BUEN GOBERNADOR, GIMNASIO (TORREJON DE ARDOZ 00064",
+        "TORREJÓN",
+        "Av. de la Constitución 9, 28850",
+        1206,
+        2,
+        "232 y 233"
+      ],
+      [
+        3,
+        "00065",
+        "CENTRO CÍVICO APONTE (OURENSE)00065",
+        "OURENSE",
+        "Rúa Eulogio Gómez Franquista 43 , 32001",
+        830,
+        2,
+        "234 y 235"
+      ],
+      [
+        4,
+        "00066",
+        "CENTRO CÍVICO BÉCQUER (SORIA)00066",
+        "SORIA",
+        "C/ Infante de Lara, 1 42003",
+        315,
+        1,
+        236
+      ],
+      [
+        5,
+        "00067",
+        "CENTRO CÍVICO BUENA VISTA SALON DE ACTOS (TOLEDO)00067",
+        "TOLEDO",
+        "Av. de Portugal, 9 , 45009",
+        1165,
+        2,
+        "237 y 238"
+      ],
+      [
+        7,
+        "00068",
+        "CENTRO CÍVICO EL TEJAR DE MELLISO (SEVILLA)",
+        "SEVILLA",
+        "C/ Santa fe, 2, 41011",
+        1927,
+        4,
+        "0239, 0240, 0241 y 0242"
+      ],
+      [
+        8,
+        "00069",
+        "CENTRO CIVICO FLORES DE SIL (PONFERRADA)00069",
+        "PONFERRADA",
+        "C/Joaquín Bruma, 92, 24400",
+        614,
+        1,
+        243
+      ]
+    ],
+    "headers": [
+      "",
+      "",
+      "RECINTOS ELECTORALES SECCIONAL DE MADRID 2024",
+      "",
+      "",
+      "",
+      "",
+      ""
+    ]
+  },
+  "Seccional de Barcelona": {
+    "totalRows": 925,
+    "firstRows": [
+      [
+        "",
+        "",
+        "RECINTOS ELECTORALES SECCIONAL DE BARCELONA 2024",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ],
+      [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ],
+      [
+        "",
+        "Número Recinto",
+        "RECINTOS",
+        "ZONA",
+        "DIRECCIÓN",
+        "ELECTORES",
+        "TOTAL DE COLEGIOS",
+        "COLEGIOS N°"
+      ],
+      [
+        1,
+        "00001",
+        "AYUNTAMIENTO DE SALOU (SALA AUDITORIO)",
+        "SALOU",
+        "",
+        898,
+        2,
+        "0001 Y 0002"
+      ],
+      [
+        2,
+        "00002",
+        "CASAL CIVIC I COMUNITARIAIGUALDA",
+        "IGUALADA",
+        "",
+        368,
+        1,
+        "0003"
+      ],
+      [
+        3,
+        "00003",
+        "CENTRE CIVIC DEL CARME",
+        "REUS",
+        "",
+        796,
+        2,
+        "0004 Y 0005"
+      ],
+      [
+        4,
+        "00004",
+        "CENTRE CIVIC I COMUNITARI CAN BORRELL",
+        "BLANES",
+        "",
+        197,
+        1,
+        "0006"
+      ],
+      [
+        5,
+        "00005",
+        "CENTRE CIVIC JOAN OLIVER PERE QUART",
+        "BARCELONA",
+        "",
+        3472,
+        6,
+        "0007, 0008, 0009, 0010, 0011 Y 0012"
+      ],
+      [
+        6,
+        "00006",
+        "CENTRE CIVIC PRESIDENT MACIÁ",
+        "TERRASSA",
+        "",
+        1206,
+        2,
+        "0013 Y 0014"
+      ],
+      [
+        7,
+        "00007",
+        "CENTRO CIVICO ATENEU LA BÓBILA",
+        "NOU BARRIS",
+        "",
+        3000,
+        5,
+        "0015, 0016, 0017, 0018 Y 0019"
+      ]
+    ],
+    "headers": [
+      "",
+      "",
+      "RECINTOS ELECTORALES SECCIONAL DE BARCELONA 2024",
+      "",
+      "",
+      "",
+      "",
+      ""
+    ]
+  },
+  "Seccional de Milano": {
+    "totalRows": 973,
+    "firstRows": [
+      [
+        "",
+        "Número Recinto",
+        "RECINTOS ELECTORALES SECCIONAL DE MILANO 2024",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ],
+      [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ],
+      [
+        "",
+        "Número Recinto",
+        "RECINTOS",
+        "ZONA",
+        "DIRECCIÓN",
+        "ELECTORES",
+        "TOTAL DE COLEGIOS",
+        "COLEGIOS N°"
+      ],
+      [
+        "1",
+        "00127",
+        "CONSULADO HONORARIO DE ANCONA",
+        "ANCONA",
+        "Piazza stamira, 10, 60122, Ancona.",
+        489,
+        1,
+        "0432"
+      ],
+      [
+        "2",
+        "00128",
+        "ASOCIACION DOMINICANA EN ABRUZZO",
+        "CHIETI",
+        "Via Avezzano, 44, 66100, Chieti.",
+        344,
+        1,
+        "0433"
+      ],
+      [
+        "3",
+        "00129",
+        "SALA COMUNAL DE LA SPEZIA",
+        "LA SPEZIA",
+        "Largo Antonio Vivaldi,19122, Fossitermi La Spezia.",
+        1981,
+        4,
+        "0434, 0435, 0436 y 0437"
+      ],
+      [
+        "4",
+        "00130",
+        "CENTRO CIVICO DE VICENZA",
+        "VICENZA",
+        "Via de Nicola, 8, 36100 Vicenza.",
+        767,
+        2,
+        "438 y 439"
+      ],
+      [
+        "5",
+        "00131",
+        "CAMARA DEL LAVORO DE TREVISO",
+        "TREVISO",
+        "Via G. Dandolo, 4, 31100, Treviso.",
+        784,
+        2,
+        "0440 y 0441"
+      ],
+      [
+        "6",
+        "00132",
+        "CENTRO CIVICO DE COMO",
+        "COMO",
+        "Via Collegio Dei Dottori, 9, 22100, Como.",
+        790,
+        2,
+        "0442 y 0443"
+      ],
+      [
+        "7",
+        "00133",
+        "CENTRO INTERCULTURALE ZONARELLI DE BOLOGNA",
+        "BOLOGNA",
+        "Via Giovanni antonio sacco, 14, 40127, Bologna.",
+        907,
+        2,
+        "0444 y 0445"
+      ]
+    ],
+    "headers": [
+      "",
+      "Número Recinto",
+      "RECINTOS ELECTORALES SECCIONAL DE MILANO 2024",
+      "",
+      "",
+      "",
+      "",
+      ""
+    ]
+  },
+  "Presidentes Direcciones Medias ": {
+    "totalRows": 995,
+    "firstRows": [
+      [
+        "#",
+        "Código",
+        "Tipo De Localidad",
+        "Recinto(s)",
+        "País",
+        "Estado/C.Autónoma",
+        "Condado/Provincia",
+        "Presidente",
+        "Cédula",
+        "Celular",
+        "Total",
+        "Total afiliados",
+        "Status",
+        "Fecha"
+      ],
+      [
+        1,
+        "DM-EX-8-2588-2-8-2588-2",
+        "Exterior",
+        "",
+        "ITALIA",
+        "MODENA",
+        "MODENA",
+        "ARONI RODRIGUEZ PEÑA",
+        3700417144,
+        3889933224,
+        4,
+        22,
+        "Incompleto",
+        45235.170266203706
+      ],
+      [
+        2,
+        "DM-EX-8-2575-9-8-2575-9",
+        "Exterior",
+        "(00008) - CENTRO CIVICO NORD",
+        "ITALIA",
+        "LA SPEZIA",
+        "LA SPEZIA",
+        "FRANCISCO ALBERTO PE¥A CONCEPCION",
+        4700089214,
+        3427585899,
+        7,
+        0,
+        "Suficiente",
+        45191.53324074074
+      ],
+      [
+        3,
+        "DM-EX-8-2575-9-8-2575-9",
+        "Exterior",
+        "(00008) - CENTRO CIVICO NORD",
+        "ITALIA",
+        "LA SPEZIA",
+        "LA SPEZIA",
+        "GEURY CASTILLO SANCHEZ",
+        5601269151,
+        393487946876,
+        7,
+        0,
+        "Suficiente",
+        45183.445289351854
+      ],
+      [
+        4,
+        "DM-EX-8-2575-9-8-2575-9",
+        "Exterior",
+        "(00008) - CENTRO CIVICO NORD",
+        "ITALIA",
+        "LA SPEZIA",
+        "LA SPEZIA",
+        "PEDRO DE LEON SANCHEZ",
+        22400100735,
+        "348-051-1672",
+        7,
+        122,
+        "Suficiente",
+        45181.29614583333
+      ],
+      [
+        5,
+        "DM-EX-8-2534-6-8-2534-6",
+        "Exterior",
+        "",
+        "ITALIA",
+        "ANCONA",
+        "ANCONA",
+        "MANOLO INFANTE PERALTA",
+        5300409207,
+        "370-300-7725",
+        7,
+        334,
+        "Suficiente",
+        45172.47630787037
+      ],
+      [
+        6,
+        "DM-EX-8-2575-9-8-2575-9",
+        "Exterior",
+        "(00008) - CENTRO CIVICO NORD",
+        "ITALIA",
+        "LA SPEZIA",
+        "LA SPEZIA",
+        "JUANA MARIA RAMOS FERNANDEZ",
+        4701188213,
+        11393453134782,
+        7,
+        41,
+        "Suficiente",
+        45156.702199074076
+      ],
+      [
+        7,
+        "DM-EX-8-2534-6-8-2534-6",
+        "Exterior",
+        "",
+        "ITALIA",
+        "ANCONA",
+        "-",
+        "YAJAIRA MIGUELINA DE LA ROSA ESPINAL",
+        1200723508,
+        "340-300-6754",
+        11,
+        0,
+        "Completo",
+        45084.68369212963
+      ],
+      [
+        8,
+        "DM-EX-8-2587-11-8-2587-11",
+        "Exterior",
+        "",
+        "ITALIA",
+        "MILANO",
+        "ABBIATEGRASSO",
+        "JEAN CARLOS DE LOS SANTOS MATEO",
+        118334259,
+        "01139349080334463",
+        3,
+        0,
+        "Incompleto",
+        45066.50784722222
+      ],
+      [
+        9,
+        "DM-EX-8-2587-11-8-2587-11",
+        "Exterior",
+        "",
+        "ITALIA",
+        "MILANO",
+        "MILANO",
+        "GELDY MARIA TIBURCIO MONEGRO",
+        40210862609,
+        "371-639-2946",
+        8,
+        60,
+        "Suficiente",
+        45037.389814814815
+      ]
+    ],
+    "headers": [
+      "#",
+      "Código",
+      "Tipo De Localidad",
+      "Recinto(s)",
+      "País",
+      "Estado/C.Autónoma",
+      "Condado/Provincia",
+      "Presidente",
+      "Cédula",
+      "Celular",
+      "Total",
+      "Total afiliados",
+      "Status",
+      "Fecha"
+    ]
+  },
+  "Seccional de Holanda": {
+    "totalRows": 975,
+    "firstRows": [
+      [
+        "ww",
+        "",
+        "",
+        "RECINTOS ELECTORALES OCLEE DE HOLANDA 2024",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ],
+      [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ],
+      [
+        "",
+        "PAÍS",
+        "Número Recinto",
+        "RECINTOS",
+        "ZONA",
+        "DIRECCIÓN",
+        "ELECTORES",
+        "TOTAL DE COLEGIOS",
+        "COLEGIOS N°"
+      ],
+      [
+        "",
+        "",
+        "BERGICA===",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ],
+      [
+        1,
+        "",
+        "00054",
+        "CONSULADO GENERAL DE LA REP. DOM",
+        "AMBERES",
+        "Koningin Astridplein No.7, Amberes",
+        333,
+        1,
+        213
+      ],
+      [
+        "",
+        "",
+        "00057",
+        "EMBAJADA DE REPÚBLICA DOMINICANA EN BELGICA",
+        "BRUSELAS",
+        "Rue de la Loi No.75B-1040, Bruselas.",
+        851,
+        2,
+        "0217 Y 0218"
+      ],
+      [
+        "",
+        "",
+        "AUSTRIA===",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ],
+      [
+        2,
+        "",
+        "00055",
+        "EMBAJADA DE LA REP. DOM. EN AUSTRIA",
+        "VIENA",
+        "Prinz Eugen StraBe No.18, Viena.",
+        796,
+        2,
+        "0214 Y 0215"
+      ],
+      [
+        3,
+        "",
+        "ALEMANIA===",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ],
+      [
+        4,
+        "",
+        "00053",
+        "CONSULADO DE LA REP.DOMINICANA",
+        "HAMBURGO",
+        "Neuer Wall No.39, Hamburgo",
+        747,
+        2,
+        "0211 Y 0212"
+      ]
+    ],
+    "headers": [
+      "ww",
+      "",
+      "",
+      "RECINTOS ELECTORALES OCLEE DE HOLANDA 2024",
+      "",
+      "",
+      "",
+      "",
+      ""
+    ]
+  },
+  "Seccional de Valencia": {
+    "totalRows": 969,
+    "firstRows": [
+      [
+        "",
+        "",
+        "RECINTOS ELECTORALES OCLEE DE VALENCIA 2024",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ],
+      [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ],
+      [
+        "",
+        "Número Recinto",
+        "RECINTOS",
+        "ZONA",
+        "DIRECCIÓN",
+        "ELECTORES",
+        "TOTAL DE COLEGIOS",
+        "COLEGIOS N°"
+      ],
+      [
+        1,
+        "00356",
+        "CENTRO SOCIO CULTURAL CARRETAS-HUERTA DE MARZO",
+        "ALBACETE",
+        "C/Mayor No 73, 02002 Albacete",
+        217,
+        1,
+        1494
+      ],
+      [
+        5,
+        "00357",
+        "COLEGIO SANTO TOMÁS DE VILLA NUEVA - PP",
+        "VALENCIA",
+        "C/ Albacete no 5. 46007 Valencia",
+        1828,
+        3,
+        "1495,1496 Y1497"
+      ],
+      [
+        2,
+        "00358",
+        "\r\nEUROHOTEL CASTELLÓ ESTACIÓ",
+        "CASTELLON",
+        "C/ DE MÉNDES NÚNEZ NO. 30, 12002 CASTELLÓN ",
+        334,
+        1,
+        1498
+      ],
+      [
+        6,
+        "00359",
+        "HOTEL CATALONIA CONDE DE FLORIDA BLANCA",
+        "MURCIA",
+        "C/ Princesa No. 18, 30002, Murcia",
+        666,
+        2,
+        "1499 Y 1500"
+      ],
+      [
+        3,
+        "00360",
+        "HOTEL EUROSTARS CENTRUM ALICANTE",
+        "ALICANTE",
+        "Calle Pintor Lorenzo Casanova No 33-35, 03003 Alicante",
+        945,
+        2,
+        "1501 Y 1502"
+      ],
+      [
+        7,
+        "00361",
+        "S'ESCORXADOR",
+        "PALMA DE MALLORCA",
+        "C/ Carrer de L`Emperadriu Eugenia No. 4, 07010 Palma, llles Balears",
+        1906,
+        4,
+        "1503, 1504, 1505, 1506"
+      ],
+      [
+        4,
+        "00362",
+        "SANTUARIO SAN NICOLÁS DE BARI",
+        "TERUEL",
+        "C/Dolores Romero no. 39, 44003, Teruel",
+        373,
+        1,
+        1507
+      ]
+    ],
+    "headers": [
+      "",
+      "",
+      "RECINTOS ELECTORALES OCLEE DE VALENCIA 2024",
+      "",
+      "",
+      "",
+      "",
+      ""
+    ]
+  },
+  "Seccional de Zurich": {
+    "totalRows": 963,
+    "firstRows": [
+      [
+        "",
+        "",
+        "",
+        17422,
+        "",
+        "",
+        "",
+        "",
+        ""
+      ],
+      [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ],
+      [
+        "",
+        "",
+        "Número Recinto",
+        "RECINTOS",
+        "ZONA",
+        "DIRECCIÓN",
+        "ELECTORES",
+        "TOTAL DE COLEGIOS",
+        "COLEGIOS N°"
+      ],
+      [
+        1,
+        "",
+        "00374",
+        "ELLINZONA - CASA DEL POPOLO",
+        "TICINO",
+        "Viale Stazione 31, 6500 Bellinzona",
+        721,
+        1,
+        1557
+      ],
+      [
+        2,
+        "",
+        "00375",
+        "MBAJADA DE LA REP. DOMINICANA EN BERNA",
+        "BERNA",
+        "Weltpoststrasse 4, 3015, Berna",
+        1102,
+        1,
+        1559
+      ],
+      [
+        3,
+        "",
+        "00376",
+        "GEMEINSCHAFTSZENTRUM i",
+        "AARGAU",
+        "Girixweg 12, 5000, Aarau",
+        643,
+        1,
+        1561
+      ],
+      [
+        4,
+        "",
+        "00377",
+        "MISION PERMANENTE DE LA REPUBLICA DOMINICANA",
+        "GINEBRA",
+        "Rue de lausanne 63, 1202, Ginebra",
+        1052,
+        1,
+        1562
+      ],
+      [
+        5,
+        "",
+        "00378",
+        "OBC SUISSE",
+        "BASEL",
+        "Aeschengraben 29, 4051, Basel",
+        627,
+        1,
+        1564
+      ],
+      [
+        6,
+        "",
+        "00379",
+        "VOLKS HAUS",
+        "ZÜRICH",
+        "Volkshaus, Stauffcherstrasse 60, 8004, Zurich",
+        4566,
+        8,
+        "1565,1566,1567,1568 ,1569, 1570,1571.1572"
+      ],
+      [
+        7,
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ]
+    ],
+    "headers": [
+      "",
+      "",
+      "",
+      17422,
+      "",
+      "",
+      "",
+      "",
+      ""
+    ]
+  }
+}

@@ -1,0 +1,13 @@
+--- Summary by Seccional ---
+Barcelona: Count=19, Range=[1 - 19]
+Holanda: Count=10, Range=[53 - 62]
+Madrid: Count=56, Range=[63 - 118]
+Milano: Count=25, Range=[NaN - 150]
+Valencia: Count=7, Range=[356 - 362]
+Zurich: Count=6, Range=[374 - 379]
+Gap detected: 204 numbers are missing entirely from the database in the range 151-354.
+First 10 missing: 151, 152, 153, 154, 155, 156, 157, 158, 159, 160
+Last 10 missing: 345, 346, 347, 348, 349, 350, 351, 352, 353, 354
+
+Valencia starts at: 356
+Valencia ends at: 362

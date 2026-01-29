@@ -1,0 +1,1017 @@
+﻿[dotenv@17.2.3] injecting env (2) from .env.local -- tip: ΓÜÖ∩╕Å  enable debug logging with { debug: true }
+≡ƒÜÇ Iniciando importaci├│n de datos de Europa...
+
+≡ƒôí Supabase URL: https://oydqzttivnrqxlziwnwn.supabase.co
+≡ƒöæ Supabase Key: Γ£ô Configurado
+
+≡ƒôä Hojas encontradas: Seccional de Madrid, Seccional de Barcelona, Seccional de Milano, Presidentes Direcciones Medias , Seccional de Holanda, Seccional de Valencia, Seccional de Zurich
+
+
+≡ƒôï Procesando: Seccional de Madrid ΓåÆ Seccional Madrid
+   Headers encontrados en fila 2
+   Columnas mapeadas: {
+  numero: 1,
+  nombre: 2,
+  zona: 3,
+  direccion: 4,
+  electores: 5,
+  total_colegios: 6,
+  colegios_nums: 7
+}
+   ≡ƒôè 56 recintos encontrados
+node :    Γ¥î Error 
+insertando 00063: Could not 
+find the 'colegios_numeros' 
+column of 'europa_recintos_el
+ectorales' in the schema 
+cache
+At line:1 char:1
++ node import_europa_data.js 
+2>&1 | Out-File -FilePath 
+import_log.txt - ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~
+    + CategoryInfo           
+   : NotSpecified: (   Γ¥î   
+  Error in...he schema cac   
+ he:String) [], RemoteExc    
+eption
+    + FullyQualifiedErrorId  
+   : NativeCommandError
+ 
+   Γ¥î Error insertando 
+00064: Could not find the 
+'colegios_numeros' column of 
+'europa_recintos_electorales'
+ in the schema cache
+   Γ¥î Error insertando 
+00065: Could not find the 
+'colegios_numeros' column of 
+'europa_recintos_electorales'
+ in the schema cache
+   Γ¥î Error insertando 
+00066: Could not find the 
+'colegios_numeros' column of 
+'europa_recintos_electorales'
+ in the schema cache
+   Γ¥î Error insertando 
+00067: Could not find the 
+'colegios_numeros' column of 
+'europa_recintos_electorales'
+ in the schema cache
+   Γ¥î Error insertando 
+00068: Could not find the 
+'colegios_numeros' column of 
+'europa_recintos_electorales'
+ in the schema cache
+   Γ¥î Error insertando 
+00069: Could not find the 
+'colegios_numeros' column of 
+'europa_recintos_electorales'
+ in the schema cache
+   Γ¥î Error insertando 
+00070: Could not find the 
+'colegios_numeros' column of 
+'europa_recintos_electorales'
+ in the schema cache
+   Γ¥î Error insertando 
+00071: Could not find the 
+'colegios_numeros' column of 
+'europa_recintos_electorales'
+ in the schema cache
+   Γ¥î Error insertando 
+00072: Could not find the 
+'colegios_numeros' column of 
+'europa_recintos_electorales'
+ in the schema cache
+   Γ¥î Error insertando 
+00073: Could not find the 
+'colegios_numeros' column of 
+'europa_recintos_electorales'
+ in the schema cache
+   Γ¥î Error insertando 
+00074: Could not find the 
+'colegios_numeros' column of 
+'europa_recintos_electorales'
+ in the schema cache
+   Γ¥î Error insertando 
+00075: Could not find the 
+'colegios_numeros' column of 
+'europa_recintos_electorales'
+ in the schema cache
+   Γ¥î Error insertando 
+00076: Could not find the 
+'colegios_numeros' column of 
+'europa_recintos_electorales'
+ in the schema cache
+   Γ¥î Error insertando 
+00077: Could not find the 
+'colegios_numeros' column of 
+'europa_recintos_electorales'
+ in the schema cache
+   Γ¥î Error insertando 
+00078: Could not find the 
+'colegios_numeros' column of 
+'europa_recintos_electorales'
+ in the schema cache
+   Γ¥î Error insertando 
+00079: Could not find the 
+'colegios_numeros' column of 
+'europa_recintos_electorales'
+ in the schema cache
+   Γ¥î Error insertando 
+00080: Could not find the 
+'colegios_numeros' column of 
+'europa_recintos_electorales'
+ in the schema cache
+   Γ¥î Error insertando 
+00081: Could not find the 
+'colegios_numeros' column of 
+'europa_recintos_electorales'
+ in the schema cache
+   Γ¥î Error insertando 
+00082: Could not find the 
+'colegios_numeros' column of 
+'europa_recintos_electorales'
+ in the schema cache
+   Γ¥î Error insertando 
+00083: Could not find the 
+'colegios_numeros' column of 
+'europa_recintos_electorales'
+ in the schema cache
+   Γ¥î Error insertando 
+00084: Could not find the 
+'colegios_numeros' column of 
+'europa_recintos_electorales'
+ in the schema cache
+   Γ¥î Error insertando 
+00085: Could not find the 
+'colegios_numeros' column of 
+'europa_recintos_electorales'
+ in the schema cache
+   Γ¥î Error insertando 
+00086: Could not find the 
+'colegios_numeros' column of 
+'europa_recintos_electorales'
+ in the schema cache
+   Γ¥î Error insertando 
+00087: Could not find the 
+'colegios_numeros' column of 
+'europa_recintos_electorales'
+ in the schema cache
+   Γ¥î Error insertando 
+00088: Could not find the 
+'colegios_numeros' column of 
+'europa_recintos_electorales'
+ in the schema cache
+   Γ¥î Error insertando 
+00089: Could not find the 
+'colegios_numeros' column of 
+'europa_recintos_electorales'
+ in the schema cache
+   Γ¥î Error insertando 
+00090: Could not find the 
+'colegios_numeros' column of 
+'europa_recintos_electorales'
+ in the schema cache
+   Γ¥î Error insertando 
+00091: Could not find the 
+'colegios_numeros' column of 
+'europa_recintos_electorales'
+ in the schema cache
+   Γ¥î Error insertando 
+00092: Could not find the 
+'colegios_numeros' column of 
+'europa_recintos_electorales'
+ in the schema cache
+   Γ¥î Error insertando 
+00093: Could not find the 
+'colegios_numeros' column of 
+'europa_recintos_electorales'
+ in the schema cache
+   Γ¥î Error insertando 
+00094: Could not find the 
+'colegios_numeros' column of 
+'europa_recintos_electorales'
+ in the schema cache
+   Γ¥î Error insertando 
+00095: Could not find the 
+'colegios_numeros' column of 
+'europa_recintos_electorales'
+ in the schema cache
+   Γ¥î Error insertando 
+00096: Could not find the 
+'colegios_numeros' column of 
+'europa_recintos_electorales'
+ in the schema cache
+   Γ¥î Error insertando 
+00097: Could not find the 
+'colegios_numeros' column of 
+'europa_recintos_electorales'
+ in the schema cache
+   Γ¥î Error insertando 
+00098: Could not find the 
+'colegios_numeros' column of 
+'europa_recintos_electorales'
+ in the schema cache
+   Γ¥î Error insertando 
+00099: Could not find the 
+'colegios_numeros' column of 
+'europa_recintos_electorales'
+ in the schema cache
+   Γ¥î Error insertando 
+00100: Could not find the 
+'colegios_numeros' column of 
+'europa_recintos_electorales'
+ in the schema cache
+   Γ¥î Error insertando 
+00101: Could not find the 
+'colegios_numeros' column of 
+'europa_recintos_electorales'
+ in the schema cache
+   Γ¥î Error insertando 
+00102: Could not find the 
+'colegios_numeros' column of 
+'europa_recintos_electorales'
+ in the schema cache
+   Γ¥î Error insertando 
+00103: Could not find the 
+'colegios_numeros' column of 
+'europa_recintos_electorales'
+ in the schema cache
+   Γ¥î Error insertando 
+00104: Could not find the 
+'colegios_numeros' column of 
+'europa_recintos_electorales'
+ in the schema cache
+   Γ¥î Error insertando 
+00105: Could not find the 
+'colegios_numeros' column of 
+'europa_recintos_electorales'
+ in the schema cache
+   Γ¥î Error insertando 
+00106: Could not find the 
+'colegios_numeros' column of 
+'europa_recintos_electorales'
+ in the schema cache
+   Γ¥î Error insertando 
+00107: Could not find the 
+'colegios_numeros' column of 
+'europa_recintos_electorales'
+ in the schema cache
+   Γ¥î Error insertando 
+00108: Could not find the 
+'colegios_numeros' column of 
+'europa_recintos_electorales'
+ in the schema cache
+   Γ¥î Error insertando 
+00109: Could not find the 
+'colegios_numeros' column of 
+'europa_recintos_electorales'
+ in the schema cache
+   Γ¥î Error insertando 
+00110: Could not find the 
+'colegios_numeros' column of 
+'europa_recintos_electorales'
+ in the schema cache
+   Γ¥î Error insertando 
+00111: Could not find the 
+'colegios_numeros' column of 
+'europa_recintos_electorales'
+ in the schema cache
+   Γ¥î Error insertando 
+00112: Could not find the 
+'colegios_numeros' column of 
+'europa_recintos_electorales'
+ in the schema cache
+   Γ¥î Error insertando 
+00113: Could not find the 
+'colegios_numeros' column of 
+'europa_recintos_electorales'
+ in the schema cache
+   Γ¥î Error insertando 
+00114: Could not find the 
+'colegios_numeros' column of 
+'europa_recintos_electorales'
+ in the schema cache
+   Γ¥î Error insertando 
+00115: Could not find the 
+'colegios_numeros' column of 
+'europa_recintos_electorales'
+ in the schema cache
+   Γ¥î Error insertando 
+00116: Could not find the 
+'colegios_numeros' column of 
+'europa_recintos_electorales'
+ in the schema cache
+   Γ¥î Error insertando 
+00117: Could not find the 
+'colegios_numeros' column of 
+'europa_recintos_electorales'
+ in the schema cache
+   Γ¥î Error insertando 
+00118: Could not find the 
+'colegios_numeros' column of 
+'europa_recintos_electorales'
+ in the schema cache
+   Γ£à 0 recintos insertados, 56 errores
+
+≡ƒôï Procesando: Seccional de Barcelona ΓåÆ Seccional Barcelona
+   Headers encontrados en fila 2
+   Columnas mapeadas: {
+  numero: 1,
+  nombre: 2,
+  zona: 3,
+  direccion: 4,
+  electores: 5,
+  total_colegios: 6,
+  colegios_nums: 7
+}
+   ≡ƒôè 19 recintos encontrados
+   Γ¥î Error insertando 
+00001: Could not find the 
+'colegios_numeros' column of 
+'europa_recintos_electorales'
+ in the schema cache
+   Γ¥î Error insertando 
+00002: Could not find the 
+'colegios_numeros' column of 
+'europa_recintos_electorales'
+ in the schema cache
+   Γ¥î Error insertando 
+00003: Could not find the 
+'colegios_numeros' column of 
+'europa_recintos_electorales'
+ in the schema cache
+   Γ¥î Error insertando 
+00004: Could not find the 
+'colegios_numeros' column of 
+'europa_recintos_electorales'
+ in the schema cache
+   Γ¥î Error insertando 
+00005: Could not find the 
+'colegios_numeros' column of 
+'europa_recintos_electorales'
+ in the schema cache
+   Γ¥î Error insertando 
+00006: Could not find the 
+'colegios_numeros' column of 
+'europa_recintos_electorales'
+ in the schema cache
+   Γ¥î Error insertando 
+00007: Could not find the 
+'colegios_numeros' column of 
+'europa_recintos_electorales'
+ in the schema cache
+   Γ¥î Error insertando 
+00008: Could not find the 
+'colegios_numeros' column of 
+'europa_recintos_electorales'
+ in the schema cache
+   Γ¥î Error insertando 
+00009: Could not find the 
+'colegios_numeros' column of 
+'europa_recintos_electorales'
+ in the schema cache
+   Γ¥î Error insertando 
+00010: Could not find the 
+'colegios_numeros' column of 
+'europa_recintos_electorales'
+ in the schema cache
+   Γ¥î Error insertando 
+00011: Could not find the 
+'colegios_numeros' column of 
+'europa_recintos_electorales'
+ in the schema cache
+   Γ¥î Error insertando 
+00012: Could not find the 
+'colegios_numeros' column of 
+'europa_recintos_electorales'
+ in the schema cache
+   Γ¥î Error insertando 
+00013: Could not find the 
+'colegios_numeros' column of 
+'europa_recintos_electorales'
+ in the schema cache
+   Γ¥î Error insertando 
+00014: Could not find the 
+'colegios_numeros' column of 
+'europa_recintos_electorales'
+ in the schema cache
+   Γ¥î Error insertando 
+00015: Could not find the 
+'colegios_numeros' column of 
+'europa_recintos_electorales'
+ in the schema cache
+   Γ¥î Error insertando 
+00016: Could not find the 
+'colegios_numeros' column of 
+'europa_recintos_electorales'
+ in the schema cache
+   Γ¥î Error insertando 
+00017: Could not find the 
+'colegios_numeros' column of 
+'europa_recintos_electorales'
+ in the schema cache
+   Γ¥î Error insertando 
+00018: Could not find the 
+'colegios_numeros' column of 
+'europa_recintos_electorales'
+ in the schema cache
+   Γ¥î Error insertando 
+00019: Could not find the 
+'colegios_numeros' column of 
+'europa_recintos_electorales'
+ in the schema cache
+   Γ£à 0 recintos insertados, 19 errores
+
+≡ƒôï Procesando: Seccional de Milano ΓåÆ Seccional Milano
+   Headers encontrados en fila 0
+   Columnas mapeadas: { numero: 1, nombre: 2 }
+   ≡ƒôè 25 recintos encontrados
+   Γ¥î Error insertando 
+N├║mero Recinto: Could not 
+find the 'colegios_numeros' 
+column of 'europa_recintos_el
+ectorales' in the schema 
+cache
+   Γ¥î Error insertando 
+00127: Could not find the 
+'colegios_numeros' column of 
+'europa_recintos_electorales'
+ in the schema cache
+   Γ¥î Error insertando 
+00128: Could not find the 
+'colegios_numeros' column of 
+'europa_recintos_electorales'
+ in the schema cache
+   Γ¥î Error insertando 
+00129: Could not find the 
+'colegios_numeros' column of 
+'europa_recintos_electorales'
+ in the schema cache
+   Γ¥î Error insertando 
+00130: Could not find the 
+'colegios_numeros' column of 
+'europa_recintos_electorales'
+ in the schema cache
+   Γ¥î Error insertando 
+00131: Could not find the 
+'colegios_numeros' column of 
+'europa_recintos_electorales'
+ in the schema cache
+   Γ¥î Error insertando 
+00132: Could not find the 
+'colegios_numeros' column of 
+'europa_recintos_electorales'
+ in the schema cache
+   Γ¥î Error insertando 
+00133: Could not find the 
+'colegios_numeros' column of 
+'europa_recintos_electorales'
+ in the schema cache
+   Γ¥î Error insertando 
+00134: Could not find the 
+'colegios_numeros' column of 
+'europa_recintos_electorales'
+ in the schema cache
+   Γ¥î Error insertando 
+00135: Could not find the 
+'colegios_numeros' column of 
+'europa_recintos_electorales'
+ in the schema cache
+   Γ¥î Error insertando 
+00136: Could not find the 
+'colegios_numeros' column of 
+'europa_recintos_electorales'
+ in the schema cache
+   Γ¥î Error insertando 
+00137: Could not find the 
+'colegios_numeros' column of 
+'europa_recintos_electorales'
+ in the schema cache
+   Γ¥î Error insertando 
+00138: Could not find the 
+'colegios_numeros' column of 
+'europa_recintos_electorales'
+ in the schema cache
+   Γ¥î Error insertando 
+00139: Could not find the 
+'colegios_numeros' column of 
+'europa_recintos_electorales'
+ in the schema cache
+   Γ¥î Error insertando 
+00140: Could not find the 
+'colegios_numeros' column of 
+'europa_recintos_electorales'
+ in the schema cache
+   Γ¥î Error insertando 
+00141: Could not find the 
+'colegios_numeros' column of 
+'europa_recintos_electorales'
+ in the schema cache
+   Γ¥î Error insertando 
+00142: Could not find the 
+'colegios_numeros' column of 
+'europa_recintos_electorales'
+ in the schema cache
+   Γ¥î Error insertando 
+00143: Could not find the 
+'colegios_numeros' column of 
+'europa_recintos_electorales'
+ in the schema cache
+   Γ¥î Error insertando 
+00144: Could not find the 
+'colegios_numeros' column of 
+'europa_recintos_electorales'
+ in the schema cache
+   Γ¥î Error insertando 
+00145: Could not find the 
+'colegios_numeros' column of 
+'europa_recintos_electorales'
+ in the schema cache
+   Γ¥î Error insertando 
+00146: Could not find the 
+'colegios_numeros' column of 
+'europa_recintos_electorales'
+ in the schema cache
+   Γ¥î Error insertando 
+00147: Could not find the 
+'colegios_numeros' column of 
+'europa_recintos_electorales'
+ in the schema cache
+   Γ¥î Error insertando 
+00148: Could not find the 
+'colegios_numeros' column of 
+'europa_recintos_electorales'
+ in the schema cache
+   Γ¥î Error insertando 
+00149: Could not find the 
+'colegios_numeros' column of 
+'europa_recintos_electorales'
+ in the schema cache
+   Γ¥î Error insertando 
+00150: Could not find the 
+'colegios_numeros' column of 
+'europa_recintos_electorales'
+ in the schema cache
+   Γ£à 0 recintos insertados, 25 errores
+
+≡ƒæÑ Procesando: Presidentes Direcciones Medias
+   Headers: [
+  '#',                 'C├│digo',
+  'Tipo De Localidad', 'Recinto(s)',
+  'Pa├¡s',              'Estado/C.Aut├│noma',
+  'Condado/Provincia', 'Presidente',
+  'C├⌐dula',            'Celular',
+  'Total',             'Total afiliados',
+  'Status',            'Fecha'
+]
+   Columnas mapeadas: {
+  codigo: 1,
+  tipo: 2,
+  recinto: 3,
+  pais: 4,
+  estado: 5,
+  provincia: 6,
+  nombre: 7,
+  cedula: 8,
+  celular: 9,
+  total: 10,
+  afiliados: 11,
+  status: 12,
+  fecha: 13
+}
+   ≡ƒôè 48 presidentes encontrados
+   Γ¥î Error insertando 
+ARONI RODRIGUEZ PE├æA: new 
+row violates row-level 
+security policy for table 
+"europa_presidentes_dm"
+   Γ¥î Error insertando 
+FRANCISCO ALBERTO PE┬ÑA 
+CONCEPCION: new row violates 
+row-level security policy 
+for table 
+"europa_presidentes_dm"
+   Γ¥î Error insertando 
+GEURY CASTILLO SANCHEZ: new 
+row violates row-level 
+security policy for table 
+"europa_presidentes_dm"
+   Γ¥î Error insertando 
+PEDRO DE LEON SANCHEZ: new 
+row violates row-level 
+security policy for table 
+"europa_presidentes_dm"
+   Γ¥î Error insertando 
+MANOLO INFANTE PERALTA: new 
+row violates row-level 
+security policy for table 
+"europa_presidentes_dm"
+   Γ¥î Error insertando 
+JUANA MARIA RAMOS FERNANDEZ: 
+new row violates row-level 
+security policy for table 
+"europa_presidentes_dm"
+   Γ¥î Error insertando 
+YAJAIRA MIGUELINA DE LA ROSA 
+ESPINAL: new row violates 
+row-level security policy 
+for table 
+"europa_presidentes_dm"
+   Γ¥î Error insertando JEAN 
+CARLOS DE LOS SANTOS MATEO: 
+new row violates row-level 
+security policy for table 
+"europa_presidentes_dm"
+   Γ¥î Error insertando 
+GELDY MARIA TIBURCIO 
+MONEGRO: new row violates 
+row-level security policy 
+for table 
+"europa_presidentes_dm"
+   Γ¥î Error insertando 
+MARISOL DE LA ROSA 
+FERNANDEZ: new row violates 
+row-level security policy 
+for table 
+"europa_presidentes_dm"
+   Γ¥î Error insertando JOSE 
+LUIS ARAUJO: new row 
+violates row-level security 
+policy for table 
+"europa_presidentes_dm"
+   Γ¥î Error insertando 
+FRANKLIN RAMIREZ SORIANO: 
+new row violates row-level 
+security policy for table 
+"europa_presidentes_dm"
+   Γ¥î Error insertando 
+EVELYN DESIRET DE JESUS: new 
+row violates row-level 
+security policy for table 
+"europa_presidentes_dm"
+   Γ¥î Error insertando 
+OSCAR ELIZANDRO GOMEZ 
+CASTILLO: new row violates 
+row-level security policy 
+for table 
+"europa_presidentes_dm"
+   Γ¥î Error insertando 
+EDWIN MOREL: new row 
+violates row-level security 
+policy for table 
+"europa_presidentes_dm"
+   Γ¥î Error insertando LUZ 
+MARIA CANELA CORPORAN: new 
+row violates row-level 
+security policy for table 
+"europa_presidentes_dm"
+   Γ¥î Error insertando 
+ALTAGRACIA MERCEDES 
+RODRIGUEZ MATOS DE SANCHEZ: 
+new row violates row-level 
+security policy for table 
+"europa_presidentes_dm"
+   Γ¥î Error insertando 
+MAXIMO VALDEZ MARTES: new 
+row violates row-level 
+security policy for table 
+"europa_presidentes_dm"
+   Γ¥î Error insertando 
+VINCENT JOSUE SANTANA 
+BATISTA: new row violates 
+row-level security policy 
+for table 
+"europa_presidentes_dm"
+   Γ¥î Error insertando 
+IVETTE MERCEDES SAINT FORT: 
+new row violates row-level 
+security policy for table 
+"europa_presidentes_dm"
+   Γ¥î Error insertando 
+EDUVIGIS DIAZ CABA: new row 
+violates row-level security 
+policy for table 
+"europa_presidentes_dm"
+   Γ¥î Error insertando 
+VICTOR ANIBAL BELTRE ROMERO: 
+new row violates row-level 
+security policy for table 
+"europa_presidentes_dm"
+   Γ¥î Error insertando 
+DAURY SANTIAGO REYES JAQUEZ: 
+new row violates row-level 
+security policy for table 
+"europa_presidentes_dm"
+   Γ¥î Error insertando 
+JAIME GABRIEL MANZUETA: new 
+row violates row-level 
+security policy for table 
+"europa_presidentes_dm"
+   Γ¥î Error insertando 
+RAFAEL ANTONIO MENDOZA 
+ROSARIO: new row violates 
+row-level security policy 
+for table 
+"europa_presidentes_dm"
+   Γ¥î Error insertando 
+GLADYS MARIA HENRIQUEZ: new 
+row violates row-level 
+security policy for table 
+"europa_presidentes_dm"
+   Γ¥î Error insertando 
+PABLO MARINO TAVAREZ URE├æA: 
+new row violates row-level 
+security policy for table 
+"europa_presidentes_dm"
+   Γ¥î Error insertando JOSE 
+RAMON MENDOZA PORTES: new 
+row violates row-level 
+security policy for table 
+"europa_presidentes_dm"
+   Γ¥î Error insertando 
+MARTINA NOVA ARIAS DE 
+RAVEGGI: new row violates 
+row-level security policy 
+for table 
+"europa_presidentes_dm"
+   Γ¥î Error insertando 
+DOMINGO ANTONIO REYES 
+ROSARIO: new row violates 
+row-level security policy 
+for table 
+"europa_presidentes_dm"
+   Γ¥î Error insertando LEA 
+DEL ROSARIO DIONICIO 
+MONTERO: new row violates 
+row-level security policy 
+for table 
+"europa_presidentes_dm"
+   Γ¥î Error insertando 
+MILSON RADAMES PE├æA MENDEZ: 
+new row violates row-level 
+security policy for table 
+"europa_presidentes_dm"
+   Γ¥î Error insertando 
+SANTO GUILLERMO SANCHEZ 
+ASTWOOD: new row violates 
+row-level security policy 
+for table 
+"europa_presidentes_dm"
+   Γ¥î Error insertando 
+RAFAEL ALEJANDRO VARGAS 
+DIAZ: new row violates 
+row-level security policy 
+for table 
+"europa_presidentes_dm"
+   Γ¥î Error insertando 
+FRANCISCO ALBERTO TRINIDAD 
+RIVAS: new row violates 
+row-level security policy 
+for table 
+"europa_presidentes_dm"
+   Γ¥î Error insertando 
+HAILYN YASMIN MERCEDES 
+CORNIELLE: new row violates 
+row-level security policy 
+for table 
+"europa_presidentes_dm"
+   Γ¥î Error insertando JOSE 
+LUIS ABREU MENDOZA: new row 
+violates row-level security 
+policy for table 
+"europa_presidentes_dm"
+   Γ¥î Error insertando 
+RAMON AUGUSTO OGANDO 
+ROSARIO: new row violates 
+row-level security policy 
+for table 
+"europa_presidentes_dm"
+   Γ¥î Error insertando 
+ALEISI FELIZ CARDERON: new 
+row violates row-level 
+security policy for table 
+"europa_presidentes_dm"
+   Γ¥î Error insertando 
+YURKIN ANTONIO VOLQUEZ DIAZ: 
+new row violates row-level 
+security policy for table 
+"europa_presidentes_dm"
+   Γ¥î Error insertando NURY 
+VILORIO DE LA CRUZ: new row 
+violates row-level security 
+policy for table 
+"europa_presidentes_dm"
+   Γ¥î Error insertando 
+JUNIOR GABRIEL GOMEZ 
+GABRIEL: new row violates 
+row-level security policy 
+for table 
+"europa_presidentes_dm"
+   Γ¥î Error insertando 
+WANDA JANSI MERCEDES 
+CORNIELLE: new row violates 
+row-level security policy 
+for table 
+"europa_presidentes_dm"
+   Γ¥î Error insertando 
+ROMERY LOPEZ ABREU: new row 
+violates row-level security 
+policy for table 
+"europa_presidentes_dm"
+   Γ¥î Error insertando 
+JUANA LEBRON VARGAS: new row 
+violates row-level security 
+policy for table 
+"europa_presidentes_dm"
+   Γ¥î Error insertando 
+MARIA CRISTINA POLANCO 
+MENDOZA: new row violates 
+row-level security policy 
+for table 
+"europa_presidentes_dm"
+   Γ¥î Error insertando 
+JACOBO ARNAUD CASTILLO: new 
+row violates row-level 
+security policy for table 
+"europa_presidentes_dm"
+   Γ¥î Error insertando LUIS 
+SANCHEZ: new row violates 
+row-level security policy 
+for table 
+"europa_presidentes_dm"
+   Γ£à 0 presidentes insertados, 48 errores
+
+≡ƒôï Procesando: Seccional de Holanda ΓåÆ Seccional Holanda
+   Headers encontrados en fila 2
+   Columnas mapeadas: {
+  pais: 1,
+  numero: 2,
+  nombre: 3,
+  zona: 4,
+  direccion: 5,
+  electores: 6,
+  total_colegios: 7,
+  colegios_nums: 8
+}
+   ≡ƒôè 10 recintos encontrados
+   Γ¥î Error insertando 
+00054: Could not find the 
+'colegios_numeros' column of 
+'europa_recintos_electorales'
+ in the schema cache
+   Γ¥î Error insertando 
+00057: Could not find the 
+'colegios_numeros' column of 
+'europa_recintos_electorales'
+ in the schema cache
+   Γ¥î Error insertando 
+00055: Could not find the 
+'colegios_numeros' column of 
+'europa_recintos_electorales'
+ in the schema cache
+   Γ¥î Error insertando 
+00053: Could not find the 
+'colegios_numeros' column of 
+'europa_recintos_electorales'
+ in the schema cache
+   Γ¥î Error insertando 
+00056: Could not find the 
+'colegios_numeros' column of 
+'europa_recintos_electorales'
+ in the schema cache
+   Γ¥î Error insertando 
+00059: Could not find the 
+'colegios_numeros' column of 
+'europa_recintos_electorales'
+ in the schema cache
+   Γ¥î Error insertando 
+00060: Could not find the 
+'colegios_numeros' column of 
+'europa_recintos_electorales'
+ in the schema cache
+   Γ¥î Error insertando 
+00058: Could not find the 
+'colegios_numeros' column of 
+'europa_recintos_electorales'
+ in the schema cache
+   Γ¥î Error insertando 
+00061: Could not find the 
+'colegios_numeros' column of 
+'europa_recintos_electorales'
+ in the schema cache
+   Γ¥î Error insertando 
+00062: Could not find the 
+'colegios_numeros' column of 
+'europa_recintos_electorales'
+ in the schema cache
+   Γ£à 0 recintos insertados, 10 errores
+
+≡ƒôï Procesando: Seccional de Valencia ΓåÆ Seccional Valencia
+   Headers encontrados en fila 2
+   Columnas mapeadas: {
+  numero: 1,
+  nombre: 2,
+  zona: 3,
+  direccion: 4,
+  electores: 5,
+  total_colegios: 6,
+  colegios_nums: 7
+}
+   ≡ƒôè 7 recintos encontrados
+   Γ¥î Error insertando 
+00356: Could not find the 
+'colegios_numeros' column of 
+'europa_recintos_electorales'
+ in the schema cache
+   Γ¥î Error insertando 
+00357: Could not find the 
+'colegios_numeros' column of 
+'europa_recintos_electorales'
+ in the schema cache
+   Γ¥î Error insertando 
+00358: Could not find the 
+'colegios_numeros' column of 
+'europa_recintos_electorales'
+ in the schema cache
+   Γ¥î Error insertando 
+00359: Could not find the 
+'colegios_numeros' column of 
+'europa_recintos_electorales'
+ in the schema cache
+   Γ¥î Error insertando 
+00360: Could not find the 
+'colegios_numeros' column of 
+'europa_recintos_electorales'
+ in the schema cache
+   Γ¥î Error insertando 
+00361: Could not find the 
+'colegios_numeros' column of 
+'europa_recintos_electorales'
+ in the schema cache
+   Γ¥î Error insertando 
+00362: Could not find the 
+'colegios_numeros' column of 
+'europa_recintos_electorales'
+ in the schema cache
+   Γ£à 0 recintos insertados, 7 errores
+
+≡ƒôï Procesando: Seccional de Zurich ΓåÆ Seccional Zurich
+   Headers encontrados en fila 2
+   Columnas mapeadas: {
+  numero: 2,
+  nombre: 3,
+  zona: 4,
+  direccion: 5,
+  electores: 6,
+  total_colegios: 7,
+  colegios_nums: 8
+}
+   ≡ƒôè 6 recintos encontrados
+   Γ¥î Error insertando 
+00374: Could not find the 
+'colegios_numeros' column of 
+'europa_recintos_electorales'
+ in the schema cache
+   Γ¥î Error insertando 
+00375: Could not find the 
+'colegios_numeros' column of 
+'europa_recintos_electorales'
+ in the schema cache
+   Γ¥î Error insertando 
+00376: Could not find the 
+'colegios_numeros' column of 
+'europa_recintos_electorales'
+ in the schema cache
+   Γ¥î Error insertando 
+00377: Could not find the 
+'colegios_numeros' column of 
+'europa_recintos_electorales'
+ in the schema cache
+   Γ¥î Error insertando 
+00378: Could not find the 
+'colegios_numeros' column of 
+'europa_recintos_electorales'
+ in the schema cache
+   Γ¥î Error insertando 
+00379: Could not find the 
+'colegios_numeros' column of 
+'europa_recintos_electorales'
+ in the schema cache
+   Γ£à 0 recintos insertados, 6 errores
+
+============================================================
+≡ƒôè RESUMEN DE IMPORTACI├ôN
+============================================================
+Recintos:
+  Γ£à Insertados: 0
+  Γ¥î Errores: 123
+
+Presidentes DM:
+  Γ£à Insertados: 0
+  Γ¥î Errores: 48
+============================================================
+
+Γ£à Importaci├│n completada!

@@ -1,0 +1,8 @@
+Checking ALL Recintos for suspicious entries...
+
+Total records: 123
+No records found for number 151.
+
+No new records found created after 02:00 UTC.
+
+Confirmed BAD HEADER ROW: ID=600ce3c5-2b58-44a8-b0e1-19295999c6ec

@@ -1,0 +1,4 @@
+Checking Policies (Corrected)...
+
+Attempting to insert test record: {"seccional":"Milano","numero_recinto":"99999","nombre_recinto":"TEST RECINTO RLS CHECK","zona_ciudad":"TEST ZONE","direccion":"TEST ADDR","total_electores":0,"total_colegios":0}
+Insert Failed: {"code":"42501","details":null,"hint":null,"message":"new row violates row-level security policy for table \"europa_recintos_electorales\""}

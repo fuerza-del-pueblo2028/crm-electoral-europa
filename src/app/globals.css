@@ -1,0 +1,47 @@
+@import "tailwindcss";
+
+:root {
+  --background: #f1f5f9;
+  /* Light Slate/Gray for cleaner feel */
+  --foreground: #171717;
+  --fp-green: #00843D;
+  /* Base fallback */
+  --fp-green-dark: #005c2b;
+  /* Base fallback */
+
+  /* New Palette */
+  --color-brand-500: #0aa059;
+  --color-brand-600: #08a952;
+  --color-brand-700: #00843D;
+  /* Institutional */
+  --color-brand-800: #137228;
+  --color-brand-900: #005c2b;
+  --color-brand-accent: #00d871;
+  --color-light-bg: #f5f5f3;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-fp-green: var(--color-brand-700);
+  --color-fp-green-dark: var(--color-brand-800);
+  --color-fp-green-light: var(--color-brand-500);
+  --color-fp-accent: var(--color-brand-accent);
+  --color-light-gray: var(--color-light-bg);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #f1f5f9;
+    /* Maintain light gray even in dark mode for institutional look */
+    --foreground: #1d1d1d;
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+}

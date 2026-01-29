@@ -1,0 +1,49 @@
+# Arreglo definitivo para Ruteo en Hostinger (Next.js Static Export)
+DirectoryIndex index.html
+
+Options -Indexes
+Options -MultiViews
+
+RewriteEngine On
+RewriteBase /
+
+# 1. Forzar HTTPS
+RewriteCond %{HTTPS} off
+RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+# 2. Redirigir de .online a .com
+RewriteCond %{HTTP_HOST} !^centinelaelectoralsaeeuropa\.com$ [NC]
+RewriteCond %{HTTP_HOST} !^$
+RewriteRule ^(.*)$ https://centinelaelectoralsaeeuropa.com/$1 [L,R=301]
+
+# 3. Si el archivo existe físicamente, servirlo
+RewriteCond %{REQUEST_FILENAME} -f
+RewriteRule ^ - [L]
+
+# 4. Mapear rutas a archivos .html (ej: /login -> /login.html)
+# Solo si no es la raíz y el archivo .html existe
+RewriteCond %{REQUEST_URI} !^/$
+RewriteCond %{DOCUMENT_ROOT}/$1.html -f
+RewriteRule ^([^/]+)/?$ $1.html [NC,L]
+
+# 5. Fallback para Rutas de Next.js (SPA)
+# Todo lo que no sea un archivo o directorio físico va a index.html
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule . /index.html [L]
+
+
+# 6. Cache Control Headers (Crucial for updates to be seen)
+<IfModule mod_headers.c>
+  # HTML files: DO NOT CACHE. Always check server for new version.
+  <FilesMatch "\.(html|htm)$">
+    Header set Cache-Control "no-cache, no-store, must-revalidate"
+    Header set Pragma "no-cache"
+    Header set Expires "0"
+  </FilesMatch>
+
+  # CSS, JS, Images: Cache for a long time (filenames are hashed)
+  <FilesMatch "\.(css|js|jpg|jpeg|png|gif|ico|svg|webp)$">
+    Header set Cache-Control "public, max-age=31536000, immutable"
+  </FilesMatch>
+</IfModule>
