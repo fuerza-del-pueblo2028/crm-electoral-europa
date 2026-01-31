@@ -91,6 +91,20 @@ export function NewAffiliateModal({ isOpen, onClose, onSuccess }: NewAffiliateMo
 
             if (error) throw error;
 
+            // --- NUEVO: Enviar Email de Bienvenida ---
+            // No esperamos el resultado para no bloquear la UI (fire and forget)
+            if (formData.email) {
+                fetch('/api/send-welcome.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: formData.email,
+                        nombre: `${formData.nombre} ${formData.apellidos}`
+                    })
+                }).catch(err => console.error("Error enviando email bienvenida:", err));
+            }
+            // -----------------------------------------
+
             onSuccess();
             // Do NOT close immediately if we want to show WhatsApp button
             setLastSavedPhone(formData.telefono);

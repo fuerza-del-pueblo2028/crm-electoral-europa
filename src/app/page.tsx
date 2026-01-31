@@ -1,11 +1,12 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { Download, RefreshCw, FileText, ArrowRight, Eye, X, Clock, Calendar, User, Sparkles, ChevronRight, ShieldCheck, Lock } from "lucide-react";
+import { Download, RefreshCw, FileText, ArrowRight, Eye, X, Clock, Calendar, User, Sparkles, ChevronRight, ShieldCheck, Lock, TrendingUp, TrendingDown, Users } from "lucide-react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { cn } from "@/lib/utils";
 import { WelcomeStructureModal } from "@/components/WelcomeStructureModal";
+import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Cell } from "recharts";
 
 export default function Dashboard() {
   const [isMounted, setIsMounted] = useState(false);
@@ -20,6 +21,11 @@ export default function Dashboard() {
 
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const [isActiveUser, setIsActiveUser] = useState(false);
+  const [affiliateStats, setAffiliateStats] = useState({
+    total: 0,
+    lastMonth: 0,
+    bySeccional: {} as Record<string, number>
+  });
 
   useEffect(() => {
     const token = localStorage.getItem("auth_token");
@@ -44,6 +50,7 @@ export default function Dashboard() {
     }
 
     fetchRecentDocuments();
+    fetchAffiliateStats();
     setIsMounted(true);
     fetchStatutes();
 
@@ -52,7 +59,15 @@ export default function Dashboard() {
       setCurrentTime(new Date());
     }, 1000);
 
-    return () => clearInterval(clockInterval);
+    // Auto-refresh affiliate stats every 30 seconds
+    const statsInterval = setInterval(() => {
+      fetchAffiliateStats();
+    }, 30000);
+
+    return () => {
+      clearInterval(clockInterval);
+      clearInterval(statsInterval);
+    };
   }, []);
 
   // Separated rotation logic...
@@ -95,6 +110,44 @@ export default function Dashboard() {
       .limit(5);
 
     if (data) setRecentDocs(data);
+  };
+
+  const fetchAffiliateStats = async () => {
+    try {
+      // Total actual
+      const { count: total } = await supabase
+        .from('afiliados')
+        .select('*', { count: 'exact', head: true });
+
+      // Fecha de hace un mes
+      const lastMonthDate = new Date();
+      lastMonthDate.setMonth(lastMonthDate.getMonth() - 1);
+
+      // Total del mes anterior (afiliados creados antes de hace un mes)
+      const { count: lastMonth } = await supabase
+        .from('afiliados')
+        .select('*', { count: 'exact', head: true })
+        .lt('created_at', lastMonthDate.toISOString());
+
+      // Por seccional
+      const { data: affiliates } = await supabase
+        .from('afiliados')
+        .select('seccional');
+
+      const bySeccional = affiliates?.reduce((acc, curr) => {
+        const sec = curr.seccional || 'Sin asignar';
+        acc[sec] = (acc[sec] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>) || {};
+
+      setAffiliateStats({
+        total: total || 0,
+        lastMonth: lastMonth || 0,
+        bySeccional
+      });
+    } catch (error) {
+      console.error("Error fetching affiliate stats:", error);
+    }
   };
 
   const formatTime = (date: Date) => {
@@ -228,19 +281,116 @@ export default function Dashboard() {
           </div>
         </div>
 
+        {/* Columna Derecha: Panel de Métricas - VISIBLE PARA USUARIOS AUTENTICADOS */}
+        {isAuthenticated && (
+          <div className="w-full lg:w-[300px] bg-white rounded-[32px] p-8 shadow-sm border border-gray-100 h-fit space-y-6">
+            {/* Header */}
+            <div className="space-y-1">
+              <p className="text-[10px] font-black text-[#137228] uppercase tracking-[0.2em]">Panel de Control</p>
+              <h2 className="text-xl font-black text-gray-900 uppercase tracking-tight italic flex items-center gap-2">
+                <Users size={20} className="text-[#137228]" />
+                Afiliados
+              </h2>
+            </div>
+
+            {/* Total Card */}
+            <div className="bg-gradient-to-br from-[#137228] to-[#0d5a1d] rounded-2xl p-5 text-white relative overflow-hidden">
+              <div className="absolute -top-4 -right-4 w-20 h-20 bg-white/10 rounded-full blur-2xl"></div>
+              <p className="text-[10px] font-black uppercase tracking-widest text-white/70 mb-1">Total Afiliados</p>
+              <p className="text-4xl font-black">{affiliateStats.total}</p>
+
+              {/* Comparación con mes anterior */}
+              {(() => {
+                const newThisMonth = affiliateStats.total - affiliateStats.lastMonth;
+                const percentChange = affiliateStats.lastMonth > 0
+                  ? Math.round((newThisMonth / affiliateStats.lastMonth) * 100)
+                  : 100;
+                const isPositive = newThisMonth >= 0;
+
+                return (
+                  <div className={`flex items-center gap-1 mt-2 text-xs font-bold ${isPositive ? 'text-green-300' : 'text-red-300'}`}>
+                    {isPositive ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
+                    <span>+{newThisMonth} este mes</span>
+                  </div>
+                );
+              })()}
+            </div>
+
+            {/* Chart: Por Seccional */}
+            <div>
+              <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">Por Seccional</p>
+              <div className="h-48">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart
+                    data={Object.entries(affiliateStats.bySeccional)
+                      .map(([name, value]) => ({ name: name.substring(0, 6), value, fullName: name }))
+                      .sort((a, b) => b.value - a.value)
+                      .slice(0, 6)}
+                    layout="vertical"
+                    margin={{ top: 0, right: 0, left: 0, bottom: 0 }}
+                  >
+                    <XAxis type="number" hide />
+                    <YAxis
+                      type="category"
+                      dataKey="name"
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fontSize: 10, fontWeight: 700, fill: '#666' }}
+                      width={50}
+                    />
+                    <Bar
+                      dataKey="value"
+                      radius={[0, 8, 8, 0]}
+                      barSize={16}
+                    >
+                      {Object.entries(affiliateStats.bySeccional).map((_, index) => (
+                        <Cell
+                          key={`cell-${index}`}
+                          fill={index === 0 ? '#137228' : index === 1 ? '#1a9434' : '#e5e7eb'}
+                        />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            {/* Lista detallada */}
+            <div className="space-y-2 pt-2 border-t border-gray-100">
+              {Object.entries(affiliateStats.bySeccional)
+                .sort(([, a], [, b]) => b - a)
+                .slice(0, 4)
+                .map(([name, count]) => (
+                  <div key={name} className="flex justify-between items-center text-sm">
+                    <span className="text-gray-600 font-medium truncate">{name}</span>
+                    <span className="font-black text-gray-900">{count}</span>
+                  </div>
+                ))}
+            </div>
+
+            {/* Link to Afiliados */}
+            <Link
+              href="/afiliados"
+              className="block w-full text-center bg-gray-100 hover:bg-[#137228] hover:text-white text-gray-700 font-black py-3 rounded-xl transition-all duration-300 uppercase tracking-widest text-[10px]"
+            >
+              Ver todos →
+            </Link>
+          </div>
+        )}
+
         {/* Columna Derecha: Documentos Recientes - VISIBLE PARA TODOS */}
-        <div className="w-full lg:w-[400px] bg-white rounded-[32px] p-10 shadow-sm border border-gray-100 h-fit">
-          <h2 className="text-xl font-black text-gray-900 mb-8 flex items-center border-b border-gray-100 pb-6 uppercase tracking-tight italic">
-            <div className="bg-blue-50 text-blue-600 p-2 rounded-xl mr-4">
-              <FileText size={22} strokeWidth={2.5} />
+        <div className="w-full lg:w-[340px] bg-white rounded-[32px] p-8 shadow-sm border border-gray-100 h-fit">
+          <h2 className="text-lg font-black text-gray-900 mb-6 flex items-center border-b border-gray-100 pb-4 uppercase tracking-tight italic">
+            <div className="bg-blue-50 text-blue-600 p-2 rounded-xl mr-3">
+              <FileText size={18} strokeWidth={2.5} />
             </div>
             Documentos Recientes
           </h2>
 
-          <div className="space-y-3">
+          <div className="space-y-2">
             {recentDocs.length === 0 ? (
-              <div className="text-center py-12 text-gray-300">
-                <FileText size={48} className="mx-auto mb-4 opacity-10" />
+              <div className="text-center py-10 text-gray-300">
+                <FileText size={40} className="mx-auto mb-3 opacity-10" />
                 <p className="text-xs font-black uppercase tracking-widest">No hay documentos</p>
                 <Link href="/admin" className="text-[#137228] text-xs font-bold underline mt-3 inline-block">Sube el primero</Link>
               </div>
@@ -257,8 +407,8 @@ export default function Dashboard() {
             )}
           </div>
 
-          <div className="mt-10">
-            <Link href="/repositorio" className="w-full block text-center bg-gray-900 text-white font-black py-4 rounded-2xl hover:bg-[#137228] transition-all duration-300 uppercase tracking-widest text-xs shadow-xl shadow-gray-900/10">
+          <div className="mt-8">
+            <Link href="/repositorio" className="w-full block text-center bg-gray-900 text-white font-black py-3 rounded-xl hover:bg-[#137228] transition-all duration-300 uppercase tracking-widest text-[10px] shadow-lg shadow-gray-900/10">
               Biblioteca Digital
             </Link>
           </div>

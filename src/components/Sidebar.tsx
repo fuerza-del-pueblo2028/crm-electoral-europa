@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Users, BarChart2, Book, Settings, LogOut, Vote, BarChart3, FileText, X, Globe } from "lucide-react";
+import { Home, Users, BarChart2, Book, Settings, LogOut, Vote, BarChart3, FileText, X, Globe, Mail } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSidebar } from "./ui/SidebarContext";
 
@@ -17,6 +17,7 @@ const menuItems = [
     { name: "Votación Interna", icon: Vote, href: "/elecciones-internas", access: "public" },
     { name: "Resultados", icon: BarChart3, href: "/elecciones-internas/resultados", access: "staff" },
     { name: "Administración", icon: Settings, href: "/admin", access: "admin" },
+    { name: "Comunicaciones", icon: Mail, href: "/admin/comunicaciones", access: "admin" },
 ];
 
 export function Sidebar() {

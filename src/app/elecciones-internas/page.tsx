@@ -92,23 +92,24 @@ export default function VotingBooth() {
             const code = Math.floor(100000 + Math.random() * 900000).toString();
             setGeneratedOtp(code);
 
-            // Enviar OTP real a través del script PHP en Hostinger
             try {
-                await fetch('/api/send-otp.php', {
+                const res = await fetch('/api/send-otp.php', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         email: data.email,
                         otp: code,
                         nombre: data.nombre
                     }),
                 });
+
+                if (!res.ok) {
+                    const errData = await res.json();
+                    throw new Error(errData.error || "Error contactando servicio de email");
+                }
             } catch (sendError) {
-                console.error("Error enviando email:", sendError);
-                // No lanzamos error para permitir acceso con el código manual si es necesario, 
-                // o para no bloquear si el script aún no está desplegado en local.
+                console.error("Error crítica enviando OTP:", sendError);
+                throw new Error("No se pudo enviar el código a tu correo. Por favor contacta soporte.");
             }
 
             setVoterData(data);
@@ -122,7 +123,7 @@ export default function VotingBooth() {
 
     const handleVerifyOtp = (e: React.FormEvent) => {
         e.preventDefault();
-        if (otp === generatedOtp || otp === "123456") {
+        if (otp === generatedOtp) {
             // Persist Session
             localStorage.setItem("voter_session", JSON.stringify(voterData));
             checkActiveRound(voterData.cedula);
