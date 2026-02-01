@@ -1,25 +1,41 @@
--- SOLUCIÓN FINAL: Permisos Públicos para Desbloquear
--- Este script permite que CUALQUIERA pueda Editar/Crear/Borrar para asegurar que funcione.
+-- Enable RLS (or keep it enabled)
+ALTER TABLE actas_electorales ENABLE ROW LEVEL SECURITY;
 
--- 1. Habilitar RLS (Siempre es bueno tenerlo activo)
-ALTER TABLE europa_recintos_electorales ENABLE ROW LEVEL SECURITY;
+-- Remove previous strict policies if any
+DROP POLICY IF EXISTS "Enable read access for authenticated users" ON actas_electorales;
+DROP POLICY IF EXISTS "Enable insert for authenticated users" ON actas_electorales;
+DROP POLICY IF EXISTS "Enable update for authenticated users" ON actas_electorales;
+DROP POLICY IF EXISTS "Enable delete for authenticated users" ON actas_electorales;
 
--- 2. Eliminar TODAS las políticas previas de esta tabla
-DROP POLICY IF EXISTS "Lectura publica" ON europa_recintos_electorales;
-DROP POLICY IF EXISTS "Escritura autenticada" ON europa_recintos_electorales;
-DROP POLICY IF EXISTS "Escritura admin" ON europa_recintos_electorales;
-DROP POLICY IF EXISTS "Enable read access for all users" ON europa_recintos_electorales;
-DROP POLICY IF EXISTS "Enable insert for authenticated users only" ON europa_recintos_electorales;
+-- Remove previous anon/public policies if any to avoid conflicts
+DROP POLICY IF EXISTS "Enable all access for anon" ON actas_electorales;
+DROP POLICY IF EXISTS "Enable select for anon" ON actas_electorales;
+DROP POLICY IF EXISTS "Enable insert for anon" ON actas_electorales;
 
--- 3. Crear política de ACCESO TOTAL PÚBLICO
--- "USING (true)" significa que todos pueden VER y EDITAR todo.
-CREATE POLICY "Acceso Total Publico" 
-ON europa_recintos_electorales
-FOR ALL 
-USING (true)
+-- Create PERMISSIVE policies for 'anon' (public) role
+-- Since the app handles auth via custom logic, the DB sees 'anon' users.
+
+CREATE POLICY "Enable select for anon"
+ON actas_electorales FOR SELECT
+TO anon, authenticated, service_role
+USING (true);
+
+CREATE POLICY "Enable insert for anon"
+ON actas_electorales FOR INSERT
+TO anon, authenticated, service_role
 WITH CHECK (true);
 
--- (Opcional) Hacer lo mismo para Presidentes DM si también fallan
-ALTER TABLE europa_presidentes_dm ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "Acceso Total Publico" ON europa_presidentes_dm;
-CREATE POLICY "Acceso Total Publico" ON europa_presidentes_dm FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Enable update for anon"
+ON actas_electorales FOR UPDATE
+TO anon, authenticated, service_role
+USING (true);
+
+CREATE POLICY "Enable delete for anon"
+ON actas_electorales FOR DELETE
+TO anon, authenticated, service_role
+USING (true);
+
+-- Ensure grants are correct
+GRANT ALL ON actas_electorales TO anon;
+GRANT ALL ON actas_electorales TO authenticated;
+GRANT ALL ON actas_electorales TO service_role;

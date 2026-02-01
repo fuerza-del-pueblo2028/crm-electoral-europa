@@ -1,10 +1,11 @@
 "use client";
 
-import { Affiliate } from "@/lib/mockData";
-import { X, CheckCircle, XCircle, ShieldCheck, MessageSquare, Mail, Copy, Send, Phone, Trash2, Edit2, Save } from "lucide-react";
+import { Affiliate, SECCIONALES } from "@/lib/mockData";
+import { X, CheckCircle, XCircle, ShieldCheck, MessageSquare, Mail, Copy, Send, Phone, Trash2, Edit2, Save, Clock, Loader2 } from "lucide-react";
 import { CarnetGenerator } from "./CarnetGenerator";
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
+import { registrarCambio, obtenerHistorial, formatAccion } from "@/lib/historial";
 
 interface AffiliateModalProps {
     isOpen: boolean;
@@ -17,7 +18,7 @@ const TEMPLATES = {
     bienvenida: {
         label: "Bienvenida",
         subject: "Bienvenido a la Fuerza del Pueblo",
-        text: "¡Hola! Es un honor darte la bienvenida a la Fuerza del Pueblo. Tu registro ha sido procesado exitosamente. Estamos a tu disposición."
+        text: "¡Hola! Es un honor darte la bienvenida a la Plataforma Electoral de la Fuerza del Pueblo en Europa \"CRM Electoral\". Tu registro ha sido procesado exitosamente. Estamos a tu disposición."
     },
     info: {
         label: "Información General",
@@ -39,10 +40,12 @@ const TEMPLATES = {
 export function AffiliateModal({ isOpen, onClose, affiliate, onDelete }: AffiliateModalProps) {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [showCarnet, setShowCarnet] = useState(false);
-    const [activeTab, setActiveTab] = useState<'info' | 'contact'>('info');
+    const [activeTab, setActiveTab] = useState<'info' | 'contact' | 'historial'>('info');
     const [isAdmin, setIsAdmin] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
     const [editForm, setEditForm] = useState<any>({});
+    const [historial, setHistorial] = useState<any[]>([]);
+    const [loadingHistorial, setLoadingHistorial] = useState(false);
 
     // Messaging State
     const [selectedTemplate, setSelectedTemplate] = useState<keyof typeof TEMPLATES>('bienvenida');
@@ -60,6 +63,21 @@ export function AffiliateModal({ isOpen, onClose, affiliate, onDelete }: Affilia
         const role = localStorage.getItem('user_role');
         setIsAdmin(role === 'administrador');
     }, []);
+
+    // Cargar historial cuando se abre el modal
+    useEffect(() => {
+        if (isOpen && affiliate) {
+            cargarHistorial();
+        }
+    }, [isOpen, affiliate]);
+
+    const cargarHistorial = async () => {
+        if (!affiliate) return;
+        setLoadingHistorial(true);
+        const data = await obtenerHistorial(affiliate.id);
+        setHistorial(data);
+        setLoadingHistorial(false);
+    };
 
     if (!isOpen || !affiliate) return null;
 
@@ -93,7 +111,10 @@ export function AffiliateModal({ isOpen, onClose, affiliate, onDelete }: Affilia
                                             nombre: affiliate.name,
                                             apellidos: affiliate.lastName,
                                             email: affiliate.email || '',
-                                            telefono: affiliate.telefono || ''
+                                            telefono: affiliate.telefono || '',
+                                            seccional: affiliate.seccional,
+                                            cargo_organizacional: affiliate.cargo_organizacional || '',
+                                            role: affiliate.role
                                         });
                                     }}
                                     className="text-white/80 hover:text-white transition-colors p-2 hover:bg-white/10 rounded-lg"
@@ -121,6 +142,12 @@ export function AffiliateModal({ isOpen, onClose, affiliate, onDelete }: Affilia
                             className={`pb-3 border-b-2 transition-all flex items-center gap-2 ${activeTab === 'contact' ? 'text-white border-white' : 'border-transparent hover:text-white'}`}
                         >
                             <MessageSquare size={16} /> Contacto
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('historial')}
+                            className={`pb-3 border-b-2 transition-all flex items-center gap-2 ${activeTab === 'historial' ? 'text-white border-white' : 'border-transparent hover:text-white'}`}
+                        >
+                            <Clock size={16} /> Historial
                         </button>
                     </div>
                 </div>
@@ -172,6 +199,56 @@ export function AffiliateModal({ isOpen, onClose, affiliate, onDelete }: Affilia
                                                 disabled={isSubmitting}
                                             />
                                         </div>
+                                        <div className="col-span-2">
+                                            <label className="block text-sm font-bold text-[#005c2b] mb-1">
+                                                Seccional
+                                            </label>
+                                            <select
+                                                value={editForm.seccional || ''}
+                                                onChange={(e) => setEditForm({ ...editForm, seccional: e.target.value })}
+                                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-fp-green"
+                                                disabled={isSubmitting}
+                                            >
+                                                {SECCIONALES.map(s => <option key={s} value={s}>{s}</option>)}
+                                            </select>
+                                        </div>
+                                        <div className="col-span-2">
+                                            <label className="block text-sm font-bold text-[#005c2b] mb-1">
+                                                Cargo Organizacional (Opcional)
+                                            </label>
+                                            <select
+                                                value={editForm.cargo_organizacional || ''}
+                                                onChange={(e) => setEditForm({ ...editForm, cargo_organizacional: e.target.value })}
+                                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-fp-green"
+                                                disabled={isSubmitting}
+                                            >
+                                                <option value="">-- Sin cargo específico --</option>
+                                                <option value="Miembro Dirección Central">Miembro Dirección Central</option>
+                                                <option value="Presidente DM">Presidente DM</option>
+                                                <option value="Presidente DB">Presidente DB</option>
+                                            </select>
+                                            <p className="text-xs text-gray-500 mt-1">Selecciona si tiene un rol especial en la organización</p>
+                                        </div>
+                                        <div className="col-span-2">
+                                            <label className="block text-sm font-bold text-red-600 mb-1 flex items-center gap-2">
+                                                <ShieldCheck size={16} />
+                                                Role del Sistema (Permisos)
+                                            </label>
+                                            <select
+                                                value={editForm.role || 'Miembro'}
+                                                onChange={(e) => setEditForm({ ...editForm, role: e.target.value })}
+                                                className="w-full px-3 py-2 border-2 border-red-300 rounded-lg focus:ring-2 focus:ring-red-500 bg-red-50 font-bold text-red-900"
+                                                disabled={isSubmitting}
+                                            >
+                                                <option value="Miembro">Miembro (Sin permisos especiales)</option>
+                                                <option value="Miembro DC">Miembro DC (Dirección Central)</option>
+                                                <option value="Presidente DM">Presidente DM</option>
+                                                <option value="Presidente DB">Presidente DB</option>
+                                                <option value="Operador">Operador (Puede gestionar afiliados)</option>
+                                                <option value="Admin">Admin (Acceso total al sistema)</option>
+                                            </select>
+                                            <p className="text-xs text-red-500 mt-1 font-medium">⚠️ Cambiar el role afecta los permisos de acceso al sistema</p>
+                                        </div>
                                     </div>
                                     <div className="flex gap-3 justify-end pt-4 border-t">
                                         <button
@@ -183,17 +260,44 @@ export function AffiliateModal({ isOpen, onClose, affiliate, onDelete }: Affilia
                                         </button>
                                         <button
                                             onClick={async () => {
+                                                // Verificar si el role cambió
+                                                const roleChanged = editForm.role !== affiliate.role;
+
+                                                if (roleChanged) {
+                                                    const roleNames = {
+                                                        'Miembro': 'Miembro (sin permisos)',
+                                                        'Operador': 'Operador (puede gestionar afiliados)',
+                                                        'Admin': 'Administrador (acceso total)'
+                                                    };
+
+                                                    const confirmMsg = `🔐 CAMBIO DE PERMISOS DE SEGURIDAD\n\n` +
+                                                        `Estás a punto de cambiar el role de:\n` +
+                                                        `➤ ${roleNames[affiliate.role as keyof typeof roleNames] || affiliate.role}\n` +
+                                                        `a:\n` +
+                                                        `➤ ${roleNames[editForm.role as keyof typeof roleNames] || editForm.role}\n\n` +
+                                                        `Esto modificará los permisos de acceso al sistema.\n\n` +
+                                                        `¿Estás seguro de continuar?`;
+
+                                                    if (!confirm(confirmMsg)) {
+                                                        return;
+                                                    }
+                                                }
+
                                                 setIsSubmitting(true);
                                                 try {
-                                                    const { error } = await supabase
+                                                    const { data, error } = await supabase
                                                         .from('afiliados')
                                                         .update({
                                                             nombre: editForm.nombre,
                                                             apellidos: editForm.apellidos,
                                                             email: editForm.email || null,
-                                                            telefono: editForm.telefono || null
+                                                            telefono: editForm.telefono || null,
+                                                            seccional: editForm.seccional,
+                                                            cargo_organizacional: editForm.cargo_organizacional || null,
+                                                            role: editForm.role
                                                         })
-                                                        .eq('id', affiliate.id);
+                                                        .eq('id', affiliate.id)
+                                                        .select();
 
                                                     if (error) {
                                                         if (error.code === '23505') {
@@ -205,8 +309,94 @@ export function AffiliateModal({ isOpen, onClose, affiliate, onDelete }: Affilia
                                                         } else {
                                                             alert('Error: ' + error.message);
                                                         }
+                                                    } else if (!data || data.length === 0) {
+                                                        // Si no hay error pero no se devolvieron datos, es probable un bloqueo RLS
+                                                        alert('⚠️ No se pudieron guardar los cambios.\n\nPosible causa: No tienes permisos para editar este registro o la política de seguridad (RLS) lo está impidiendo.\n\nContacta al administrador del sistema.');
                                                     } else {
-                                                        alert('✅ Datos actualizados');
+                                                        // Registrar cambios en el historial
+                                                        const cambios: string[] = [];
+
+                                                        if (editForm.nombre !== affiliate.name) {
+                                                            await registrarCambio({
+                                                                afiliado_id: affiliate.id,
+                                                                accion: 'editado',
+                                                                campo_modificado: 'nombre',
+                                                                valor_anterior: affiliate.name,
+                                                                valor_nuevo: editForm.nombre
+                                                            });
+                                                            cambios.push('nombre');
+                                                        }
+
+                                                        if (editForm.apellidos !== affiliate.lastName) {
+                                                            await registrarCambio({
+                                                                afiliado_id: affiliate.id,
+                                                                accion: 'editado',
+                                                                campo_modificado: 'apellidos',
+                                                                valor_anterior: affiliate.lastName,
+                                                                valor_nuevo: editForm.apellidos
+                                                            });
+                                                            cambios.push('apellidos');
+                                                        }
+
+                                                        if (editForm.email !== (affiliate.email || '')) {
+                                                            await registrarCambio({
+                                                                afiliado_id: affiliate.id,
+                                                                accion: 'editado',
+                                                                campo_modificado: 'email',
+                                                                valor_anterior: affiliate.email || 'sin email',
+                                                                valor_nuevo: editForm.email || 'sin email'
+                                                            });
+                                                            cambios.push('email');
+                                                        }
+
+                                                        if (editForm.telefono !== (affiliate.telefono || '')) {
+                                                            await registrarCambio({
+                                                                afiliado_id: affiliate.id,
+                                                                accion: 'editado',
+                                                                campo_modificado: 'telefono',
+                                                                valor_anterior: affiliate.telefono || 'sin teléfono',
+                                                                valor_nuevo: editForm.telefono || 'sin teléfono'
+                                                            });
+                                                            cambios.push('teléfono');
+                                                        }
+
+                                                        if (editForm.seccional !== affiliate.seccional) {
+                                                            await registrarCambio({
+                                                                afiliado_id: affiliate.id,
+                                                                accion: 'editado',
+                                                                campo_modificado: 'seccional',
+                                                                valor_anterior: affiliate.seccional,
+                                                                valor_nuevo: editForm.seccional
+                                                            });
+                                                            cambios.push('seccional');
+                                                        }
+
+                                                        if (editForm.cargo_organizacional !== (affiliate.cargo_organizacional || '')) {
+                                                            await registrarCambio({
+                                                                afiliado_id: affiliate.id,
+                                                                accion: 'editado',
+                                                                campo_modificado: 'cargo_organizacional',
+                                                                valor_anterior: affiliate.cargo_organizacional || 'sin cargo',
+                                                                valor_nuevo: editForm.cargo_organizacional || 'sin cargo'
+                                                            });
+                                                            cambios.push('cargo organizacional');
+                                                        }
+
+                                                        if (roleChanged) {
+                                                            await registrarCambio({
+                                                                afiliado_id: affiliate.id,
+                                                                accion: 'role_cambiado',
+                                                                campo_modificado: 'role',
+                                                                valor_anterior: affiliate.role,
+                                                                valor_nuevo: editForm.role
+                                                            });
+                                                        }
+
+                                                        if (roleChanged) {
+                                                            alert(`✅ Datos actualizados\n🔐 Role cambiado a: ${editForm.role}`);
+                                                        } else {
+                                                            alert('✅ Datos actualizados');
+                                                        }
                                                         setIsEditing(false);
                                                         onClose();
                                                         if (onDelete) onDelete(); // Refresh
@@ -258,6 +448,12 @@ export function AffiliateModal({ isOpen, onClose, affiliate, onDelete }: Affilia
                                                 <label className="text-[10px] text-gray-400 font-black uppercase tracking-widest">Delegación/Seccional</label>
                                                 <p className="text-gray-800 font-bold uppercase italic mt-1">{affiliate.seccional}</p>
                                             </div>
+                                            {affiliate.cargo_organizacional && (
+                                                <div>
+                                                    <label className="text-[10px] text-gray-400 font-black uppercase tracking-widest">Cargo Organizacional</label>
+                                                    <p className="text-[#137228] font-bold uppercase italic mt-1">{affiliate.cargo_organizacional}</p>
+                                                </div>
+                                            )}
                                             <div>
                                                 <label className="text-[10px] text-gray-400 font-black uppercase tracking-widest">Correo Electrónico</label>
                                                 <p className="text-gray-600 font-medium truncate mt-1">{affiliate.email || 'No registrado'}</p>
@@ -283,6 +479,14 @@ export function AffiliateModal({ isOpen, onClose, affiliate, onDelete }: Affilia
                                                             if (error) {
                                                                 alert('Error al actualizar: ' + error.message);
                                                             } else {
+                                                                // Registrar en historial
+                                                                await registrarCambio({
+                                                                    afiliado_id: affiliate.id,
+                                                                    accion: newStatus ? 'validado' : 'invalidado',
+                                                                    valor_anterior: affiliate.validated ? 'validado' : 'pendiente',
+                                                                    valor_nuevo: newStatus ? 'validado' : 'pendiente'
+                                                                });
+
                                                                 // alert(`✅ Afiliado ${newStatus ? 'validado' : 'marcado como pendiente'} exitosamente`);
                                                                 // Don't close, just refresh if context allowed or parent update
                                                                 onClose();
@@ -344,7 +548,7 @@ export function AffiliateModal({ isOpen, onClose, affiliate, onDelete }: Affilia
                                 </div>
                             )}
                         </>
-                    ) : (
+                    ) : activeTab === 'contact' ? (
                         /* Contact Tab Content */
                         <div className="space-y-6 animate-in slide-in-from-right-4 duration-300">
                             <div>
@@ -417,7 +621,119 @@ export function AffiliateModal({ isOpen, onClose, affiliate, onDelete }: Affilia
                                 Las comunicaciones se enviarán desde tus aplicaciones predeterminadas por seguridad.
                             </p>
                         </div>
-                    )}
+                    ) : activeTab === 'historial' ? (
+                        <div className="space-y-4 animate-in slide-in-from-right-4 duration-300 max-h-96 overflow-y-auto pr-2">
+                            <div className="flex items-center justify-between mb-4">
+                                <div>
+                                    <h3 className="text-lg font-black text-gray-900 uppercase tracking-tight">Historial de Cambios</h3>
+                                    <p className="text-xs text-gray-500 mt-1">Registro de todas las modificaciones realizadas</p>
+                                </div>
+                                <button
+                                    onClick={cargarHistorial}
+                                    disabled={loadingHistorial}
+                                    className="text-fp-green hover:text-fp-green-dark transition-colors p-2 hover:bg-green-50 rounded-lg"
+                                    title="Actualizar historial"
+                                >
+                                    <Clock size={18} className={loadingHistorial ? 'animate-spin' : ''} />
+                                </button>
+                            </div>
+
+                            {loadingHistorial ? (
+                                <div className="flex flex-col items-center py-12 space-y-3">
+                                    <Loader2 className="animate-spin text-fp-green" size={32} />
+                                    <p className="text-xs text-gray-400 font-medium">Cargando historial...</p>
+                                </div>
+                            ) : historial.length === 0 ? (
+                                <div className="text-center py-16 space-y-3">
+                                    <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto">
+                                        <Clock size={28} className="text-gray-300" />
+                                    </div>
+                                    <p className="text-gray-400 font-bold text-sm">Sin historial de cambios</p>
+                                    <p className="text-gray-400 text-xs">Este afiliado aún no tiene cambios registrados</p>
+                                </div>
+                            ) : (
+                                <div className="relative">
+                                    {/* Timeline line */}
+                                    <div className="absolute left-6 top-0 bottom-0 w-0.5 bg-gray-200"></div>
+
+                                    <div className="space-y-4">
+                                        {historial.map((item, index) => {
+                                            const { icon, text, color } = formatAccion(item.accion);
+                                            const fecha = new Date(item.created_at);
+                                            const fechaFormateada = fecha.toLocaleDateString('es-ES', {
+                                                day: '2-digit',
+                                                month: 'short',
+                                                year: 'numeric',
+                                                hour: '2-digit',
+                                                minute: '2-digit'
+                                            });
+
+                                            return (
+                                                <div key={item.id} className="relative flex gap-4 items-start">
+                                                    {/* Timeline dot */}
+                                                    <div className={`w-12 h-12 rounded-full bg-white border-2 ${item.accion === 'eliminado' ? 'border-red-300' :
+                                                        item.accion === 'creado' ? 'border-green-300' :
+                                                            item.accion === 'validado' ? 'border-green-300' :
+                                                                item.accion === 'role_cambiado' ? 'border-purple-300' :
+                                                                    'border-blue-300'
+                                                        } flex items-center justify-center text-xl z-10 shadow-sm`}>
+                                                        {icon}
+                                                    </div>
+
+                                                    {/* Content */}
+                                                    <div className="flex-1 bg-gray-50 rounded-xl p-4 border border-gray-100 hover:shadow-md transition-shadow">
+                                                        <div className="flex items-start justify-between gap-3">
+                                                            <div className="flex-1">
+                                                                <p className={`font-bold text-sm ${color} mb-1`}>
+                                                                    {text}
+                                                                </p>
+
+                                                                {item.campo_modificado && (
+                                                                    <div className="space-y-1 mt-2">
+                                                                        <p className="text-xs text-gray-500 font-medium uppercase tracking-wider">
+                                                                            Campo: {item.campo_modificado}
+                                                                        </p>
+                                                                        {item.valor_anterior && item.valor_nuevo && (
+                                                                            <div className="flex items-center gap-2 text-xs">
+                                                                                <span className="text-red-600 line-through font-mono bg-red-50 px-2 py-1 rounded">
+                                                                                    {item.valor_anterior}
+                                                                                </span>
+                                                                                <span className="text-gray-400">→</span>
+                                                                                <span className="text-green-600 font-mono bg-green-50 px-2 py-1 rounded font-bold">
+                                                                                    {item.valor_nuevo}
+                                                                                </span>
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
+                                                                )}
+
+                                                                {item.detalles && Object.keys(item.detalles).length > 0 && (
+                                                                    <div className="mt-2 text-xs text-gray-500">
+                                                                        {item.detalles.nombre_completo && (
+                                                                            <p>👤 {item.detalles.nombre_completo}</p>
+                                                                        )}
+                                                                        {item.detalles.cedula && (
+                                                                            <p>🆔 {item.detalles.cedula}</p>
+                                                                        )}
+                                                                    </div>
+                                                                )}
+
+                                                                <div className="flex items-center gap-2 mt-3 text-xs text-gray-400">
+                                                                    <span className="font-medium">{item.usuario_nombre || 'Sistema'}</span>
+                                                                    <span>•</span>
+                                                                    <span>{fechaFormateada}</span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    ) : null}
                 </div>
 
                 {/* Footer con opción de eliminar */}
@@ -428,6 +744,17 @@ export function AffiliateModal({ isOpen, onClose, affiliate, onDelete }: Affilia
                                 if (confirm('¿Seguro que desea eliminar este afiliado? Esta acción no se puede deshacer.')) {
                                     setIsSubmitting(true);
                                     try {
+                                        // Registrar en historial ANTES de eliminar
+                                        await registrarCambio({
+                                            afiliado_id: affiliate.id,
+                                            accion: 'eliminado',
+                                            detalles: {
+                                                nombre_completo: `${affiliate.name} ${affiliate.lastName}`,
+                                                cedula: affiliate.cedula,
+                                                seccional: affiliate.seccional
+                                            }
+                                        });
+
                                         const { error } = await supabase
                                             .from('afiliados')
                                             .delete()

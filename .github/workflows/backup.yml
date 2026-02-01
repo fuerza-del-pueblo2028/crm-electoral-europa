@@ -1,0 +1,79 @@
+name: Backup Semanal Automático
+
+on:
+  # Ejecutar cada domingo a las 2:00 AM
+  schedule:
+    - cron: '0 2 * * 0'
+  
+  # Permitir ejecución manual desde GitHub
+  workflow_dispatch:
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 📥 Checkout código
+        uses: actions/checkout@v4
+      
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+      
+      - name: 📦 Instalar dependencias
+        run: npm ci
+      
+      - name: 💾 Ejecutar backup
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: node scripts/backup.js
+      
+      - name: 📅 Obtener fecha
+        id: date
+        run: echo "date=$(date +'%Y-%m-%d')" >> $GITHUB_OUTPUT
+      
+      - name: 🚀 Crear Release con Backup
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: backup-${{ steps.date.outputs.date }}
+          name: Backup Automático - ${{ steps.date.outputs.date }}
+          body: |
+            ## 📦 Backup Semanal Automático
+            
+            **Fecha:** ${{ steps.date.outputs.date }}
+            **Ejecutado por:** GitHub Actions
+            
+            ### 📊 Contenido
+            - ✅ Todas las tablas de la base de datos
+            - ✅ Índice de archivos del Storage
+            - ✅ Metadata del backup
+            
+            ### 📥 Restauración
+            1. Descarga el archivo `backup_*.zip`
+            2. Ejecuta: `node scripts/restore.js backup_*.zip`
+            
+            ---
+            *Este backup se elimina automáticamente después de 3 meses*
+          files: backups/backup_*.zip
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: 🗑️ Limpiar releases antiguas (mantener últimas 12)
+        uses: dev-drprasad/delete-older-releases@v0.3.2
+        with:
+          keep_latest: 12
+          delete_tags: true
+          delete_tag_pattern: backup-
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: 🧹 Limpiar archivos locales
+        run: rm -rf backups/backup_*.zip
+      
+      - name: ✅ Backup completado
+        run: echo "🎉 Backup semanal completado y subido a GitHub Releases"

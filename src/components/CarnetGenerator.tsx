@@ -2,16 +2,77 @@
 
 import { Affiliate } from "@/lib/mockData";
 import { QrCode, ShieldCheck, Upload, Download, Loader2 } from "lucide-react";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import html2canvas from "html2canvas";
+import { supabase } from "@/lib/supabase";
 
 export function CarnetGenerator({ affiliate }: { affiliate: Affiliate }) {
     const [idPhoto, setIdPhoto] = useState<string | null>(null);
     const [isGenerating, setIsGenerating] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
     const carnetRef = useRef<HTMLDivElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    // Cargar foto existente al montar el componente
+    useEffect(() => {
+        if (affiliate.foto_url) {
+            setIdPhoto(affiliate.foto_url);
+        }
+    }, [affiliate.foto_url]);
+
+    // Función para guardar la foto en Supabase Storage y actualizar DB
+    const savePhotoToDatabase = async (file: File) => {
+        setIsSaving(true);
+        try {
+            // 1. Subir archivo a Supabase Storage
+            const fileExt = file.name.split('.').pop();
+            const fileName = `${affiliate.cedula}_${Date.now()}.${fileExt}`;
+            const filePath = `carnets/${fileName}`;
+
+            const { error: uploadError } = await supabase.storage
+                .from('fotos_afiliados')
+                .upload(filePath, file, { upsert: true });
+
+            if (uploadError) {
+                console.error('Error al subir foto:', uploadError);
+                console.error('Detalles del error:', {
+                    message: uploadError.message,
+                    bucket: 'fotos_afiliados',
+                    path: filePath,
+                    fullError: uploadError
+                });
+                alert(`⚠️ Error al guardar la foto: ${uploadError.message}`);
+                return;
+            }
+
+            // 2. Obtener URL pública
+            const { data: { publicUrl } } = supabase.storage
+                .from('fotos_afiliados')
+                .getPublicUrl(filePath);
+
+            // 3. Actualizar registro en la tabla afiliados
+            const { error: updateError } = await supabase
+                .from('afiliados')
+                .update({ foto_url: publicUrl })
+                .eq('id', affiliate.id);
+
+            if (updateError) {
+                console.error('Error al actualizar DB:', updateError);
+                alert('⚠️ Foto subida pero no se pudo actualizar el registro.');
+                return;
+            }
+
+            console.log('✅ Foto guardada correctamente en:', publicUrl);
+            alert('✅ Foto guardada exitosamente');
+        } catch (error) {
+            console.error('Error inesperado:', error);
+            alert('⚠️ Error al guardar la foto');
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
             const reader = new FileReader();
@@ -19,6 +80,9 @@ export function CarnetGenerator({ affiliate }: { affiliate: Affiliate }) {
                 setIdPhoto(reader.result as string);
             };
             reader.readAsDataURL(file);
+
+            // Guardar en Supabase
+            await savePhotoToDatabase(file);
         }
     };
 
@@ -141,9 +205,11 @@ export function CarnetGenerator({ affiliate }: { affiliate: Affiliate }) {
             <div className="flex gap-4 w-full max-w-[400px]">
                 <button
                     onClick={() => fileInputRef.current?.click()}
-                    className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-white border-2 border-gray-100 hover:border-[#137228] text-gray-700 hover:text-[#137228] rounded-2xl font-black text-xs uppercase tracking-widest transition-all shadow-sm"
+                    disabled={isSaving}
+                    className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-white border-2 border-gray-100 hover:border-[#137228] text-gray-700 hover:text-[#137228] rounded-2xl font-black text-xs uppercase tracking-widest transition-all shadow-sm disabled:opacity-70 disabled:cursor-not-allowed"
                 >
-                    <Upload size={16} /> {idPhoto ? "Cambiar Foto" : "Subir Foto"}
+                    {isSaving ? <Loader2 size={16} className="animate-spin" /> : <Upload size={16} />}
+                    {isSaving ? "Guardando..." : (idPhoto ? "Cambiar Foto" : "Subir Foto")}
                 </button>
                 <button
                     disabled={isGenerating}

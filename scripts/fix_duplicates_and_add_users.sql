@@ -62,6 +62,26 @@ INSERT INTO usuarios (nombre, cedula, password, rol, seccional)
 VALUES ('Operador Barcelona', '000-0000000-4', 'claveOp2', 'operador', 'Barcelona')
 ON CONFLICT (cedula) DO NOTHING;
 
+-- Crear Operador 3
+INSERT INTO usuarios (nombre, cedula, password, rol, seccional)
+VALUES ('Operador Madrid', '000-0000000-3', 'claveOp1', 'operador', 'Madrid')
+ON CONFLICT (cedula) DO NOTHING;
+
+-- Crear Operador 4
+INSERT INTO usuarios (nombre, cedula, password, rol, seccional)
+VALUES ('Operador Barcelona', '000-0000000-4', 'claveOp2', 'operador', 'Barcelona')
+ON CONFLICT (cedula) DO NOTHING;
+
+-- Crear Operador 5
+INSERT INTO usuarios (nombre, cedula, password, rol, seccional)
+VALUES ('Operador Madrid', '000-0000000-3', 'claveOp1', 'operador', 'Madrid')
+ON CONFLICT (cedula) DO NOTHING;
+
+-- Crear Operador 6
+INSERT INTO usuarios (nombre, cedula, password, rol, seccional)
+VALUES ('Operador Barcelona', '000-0000000-4', 'claveOp2', 'operador', 'Barcelona')
+ON CONFLICT (cedula) DO NOTHING;
+
 -- ... Repite para los otros 4 operadores cambiando nombre, cédula, clave y seccional ...
 -- Seccionales válidas: Madrid, Barcelona, Milano, Zurich, Holanda, Valencia.
 

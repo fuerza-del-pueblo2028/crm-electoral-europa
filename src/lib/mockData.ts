@@ -5,11 +5,12 @@ export type Affiliate = {
     cedula: string;
     seccional: string;
     validated: boolean;
-    role: "Miembro" | "Operador" | "Admin";
+    role: "Miembro" | "Miembro DC" | "Presidente DM" | "Presidente DB" | "Operador" | "Admin";
     email: string;
     foto_url?: string;
     fecha_nacimiento?: string;
     telefono?: string;
+    cargo_organizacional?: string;
 };
 
 export const SECCIONALES = [

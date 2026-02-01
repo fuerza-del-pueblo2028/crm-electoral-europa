@@ -300,12 +300,84 @@ export default function AdminPage() {
         fetchPadron();
     };
 
-    const handleFileChange = (file: File | null) => {
+    const handleFileChange = async (file: File | null) => {
         setSelectedFile(file);
-        if (file && file.type.startsWith('image/')) {
-            const reader = new FileReader();
-            reader.onloadend = () => setFilePreview(reader.result as string);
-            reader.readAsDataURL(file);
+        if (file) {
+            // Preview logic
+            if (file.type.startsWith('image/')) {
+                const reader = new FileReader();
+                reader.onloadend = () => setFilePreview(reader.result as string);
+                reader.readAsDataURL(file);
+            } else {
+                setFilePreview(null);
+            }
+
+            // PDF Recognition Logic
+            // PDF Recognition Logic
+            const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+
+            if (isPdf) {
+                try {
+                    // Visual feedback
+                    setActaForm(prev => ({ ...prev, votos_fp: 0 })); // Reset while loading (visual cue)
+
+                    const formData = new FormData();
+                    formData.append("file", file);
+
+                    // Add 15s timeout
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), 15000);
+
+                    // Call our new API
+                    const response = await fetch("/api/actas/parse", {
+                        method: "POST",
+                        body: formData,
+                        signal: controller.signal
+                    });
+
+                    clearTimeout(timeoutId);
+
+                    if (response.ok) {
+                        const data = await response.json();
+
+                        // Check if we actually found data
+                        const totalVotesFound = (data.results.votos_fp || 0) + (data.results.votos_prm || 0) + (data.results.votos_pld || 0);
+
+                        if (totalVotesFound === 0) {
+                            alert("El análisis terminó pero no encontré números de votos.\n\nTexto detectado (inicio):\n" + (data.text_snippet || "Nada legible"));
+                            console.log("Texto completo PDF:", data.text_snippet);
+                        } else {
+                            setActaForm(prev => ({
+                                ...prev,
+                                votos_fp: data.results.votos_fp || 0,
+                                votos_prm: data.results.votos_prm || 0,
+                                votos_pld: data.results.votos_pld || 0,
+                                votos_otros: data.results.votos_otros || 0,
+                                votos_nulos: data.results.votos_nulos || 0
+                            }));
+                            alert(`¡Éxito! Datos extraídos.\nVerifica los campos.`);
+                        }
+                    } else {
+                        // Try to parse error details
+                        let errorMessage = response.statusText;
+                        try {
+                            const errorData = await response.json();
+                            if (errorData.error) errorMessage = errorData.error;
+                        } catch (e) { /* ignore json parse error */ }
+
+                        throw new Error(errorMessage);
+                    }
+                } catch (error: any) {
+                    console.error("Error analizando PDF:", error);
+                    if (error.name === 'AbortError') {
+                        alert("El análisis tardó demasiado (>15s). Posiblemente sea una imagen muy pesada. Ingresa los datos manualmente.");
+                    } else {
+                        alert("Error del Servidor: " + error.message + "\n\nPor favor ingresa los datos manualmente.");
+                    }
+                    // Remove "Analizando..." message by forcing re-render or similar if needed, 
+                    // though usually the user will just replace the file or type manually.
+                }
+            }
         } else {
             setFilePreview(null);
         }
@@ -1546,13 +1618,16 @@ export default function AdminPage() {
                                                     <span className="text-white text-xs font-bold uppercase tracking-widest">Cambiar Imagen</span>
                                                 </div>
                                             </div>
-                                        ) : selectedFile?.type === 'application/pdf' ? (
+                                        ) : selectedFile?.name.toLowerCase().endsWith('.pdf') ? (
                                             <div className="text-center animate-in zoom-in-95">
                                                 <div className="bg-red-100 text-red-600 p-6 rounded-3xl mb-4 inline-block shadow-md">
                                                     <FileSearch size={48} />
                                                 </div>
                                                 <p className="text-sm font-black text-gray-900 uppercase tracking-tighter">{selectedFile.name}</p>
                                                 <p className="text-[10px] text-gray-400 font-bold uppercase mt-1">Archivo PDF Detectado</p>
+                                                <p className="text-[10px] text-[#137228] font-bold uppercase mt-2 animate-pulse bg-green-50 px-2 py-1 rounded-full">
+                                                    Analizando datos...
+                                                </p>
                                             </div>
                                         ) : (
                                             <div className="text-center">

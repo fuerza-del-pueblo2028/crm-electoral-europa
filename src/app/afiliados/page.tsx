@@ -3,10 +3,12 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { SECCIONALES, Affiliate } from "@/lib/mockData";
-import { Search, Filter, CheckCircle, XCircle, Loader2, Plus } from "lucide-react";
+import { Search, Filter, CheckCircle, XCircle, Loader2, Plus, Download, Upload, Calendar } from "lucide-react";
 import { AffiliateModal } from "@/components/AffiliateModal";
 import { NewAffiliateModal } from "@/components/NewAffiliateModal";
+import { ImportAffiliatesModal } from "@/components/ImportAffiliatesModal";
 import { supabase } from "@/lib/supabase";
+import * as XLSX from 'xlsx';
 
 // Debounce helper
 function useDebounce<T>(value: T, delay: number): T {
@@ -27,10 +29,16 @@ export default function AffiliatesPage() {
     const [selectedStatus, setSelectedStatus] = useState("Todos");
     const [sortOrder, setSortOrder] = useState("newest");
 
+    // Date Filter States
+    const [dateFilter, setDateFilter] = useState("todos"); // todos, 7days, 30days, 90days, custom
+    const [customStartDate, setCustomStartDate] = useState("");
+    const [customEndDate, setCustomEndDate] = useState("");
+
     // UI/Data States
     const [selectedAffiliate, setSelectedAffiliate] = useState<Affiliate | null>(null);
     const [isMounted, setIsMounted] = useState(false);
     const [isNewModalOpen, setIsNewModalOpen] = useState(false);
+    const [isImportModalOpen, setIsImportModalOpen] = useState(false);
     const [affiliates, setAffiliates] = useState<Affiliate[]>([]);
     const [loading, setLoading] = useState(true);
     const [totalItems, setTotalItems] = useState(0);
@@ -51,7 +59,7 @@ export default function AffiliatesPage() {
     // Reset page to 1 only when filters change (not when page changes)
     useEffect(() => {
         setCurrentPage(1);
-    }, [debouncedSearchTerm, selectedSeccional, selectedRole, selectedStatus, sortOrder]);
+    }, [debouncedSearchTerm, selectedSeccional, selectedRole, selectedStatus, sortOrder, dateFilter, customStartDate, customEndDate]);
 
     const fetchAffiliates = useCallback(async () => {
         if (!isMounted) return;
@@ -65,11 +73,20 @@ export default function AffiliatesPage() {
 
             // 1. Apply Filters
             if (debouncedSearchTerm) {
-                // Search across Name, Lastname, Cedula
-                // Note: ILIKE is case insensitive. We construct an OR filter.
-                // Syntax: column.ilike.val,column.ilike.val
-                const term = `%${debouncedSearchTerm}%`;
-                query = query.or(`nombre.ilike.${term},apellidos.ilike.${term},cedula.ilike.${term}`);
+                // Normalize search term to remove accents (José → jose)
+                // This matches the normalized columns nombre_search and apellidos_search
+                const normalizedTerm = debouncedSearchTerm
+                    .normalize("NFD")
+                    .replace(/[\u0300-\u036f]/g, "")
+                    .toLowerCase();
+
+                const term = `%${normalizedTerm}%`;
+
+                query = query.or(
+                    `nombre_search.like.${term},` +
+                    `apellidos_search.like.${term},` +
+                    `cedula.ilike.${term}`
+                );
             }
 
             if (selectedSeccional !== "Todas") {
@@ -82,6 +99,39 @@ export default function AffiliatesPage() {
 
             if (selectedStatus !== "Todos") {
                 query = query.eq('validado', selectedStatus === "Validado");
+            }
+
+            // Date Filter
+            if (dateFilter !== "todos") {
+                const now = new Date();
+                let startDate: Date | null = null;
+
+                switch (dateFilter) {
+                    case "7days":
+                        startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+                        query = query.gte('created_at', startDate.toISOString());
+                        break;
+                    case "30days":
+                        startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+                        query = query.gte('created_at', startDate.toISOString());
+                        break;
+                    case "90days":
+                        startDate = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+                        query = query.gte('created_at', startDate.toISOString());
+                        break;
+                    case "custom":
+                        if (customStartDate) {
+                            const start = new Date(customStartDate);
+                            start.setHours(0, 0, 0, 0);
+                            query = query.gte('created_at', start.toISOString());
+                        }
+                        if (customEndDate) {
+                            const end = new Date(customEndDate);
+                            end.setHours(23, 59, 59, 999);
+                            query = query.lte('created_at', end.toISOString());
+                        }
+                        break;
+                }
             }
 
             // 2. Apply Sorting
@@ -124,7 +174,8 @@ export default function AffiliatesPage() {
                     email: item.email || '',
                     foto_url: item.foto_url,
                     fecha_nacimiento: item.fecha_nacimiento,
-                    telefono: item.telefono
+                    telefono: item.telefono,
+                    cargo_organizacional: item.cargo_organizacional
                 }));
                 setAffiliates(mappedData);
                 setTotalItems(count || 0);
@@ -134,7 +185,107 @@ export default function AffiliatesPage() {
         } finally {
             setLoading(false);
         }
-    }, [isMounted, debouncedSearchTerm, selectedSeccional, selectedRole, selectedStatus, sortOrder, currentPage]);
+    }, [isMounted, debouncedSearchTerm, selectedSeccional, selectedRole, selectedStatus, sortOrder, currentPage, dateFilter, customStartDate, customEndDate]);
+
+    // Función de exportación a Excel
+    const exportToExcel = async () => {
+        try {
+            // Obtener TODOS los afiliados con los filtros aplicados (sin paginación)
+            let query = supabase
+                .from('afiliados')
+                .select('*');
+
+            // Aplicar los mismos filtros que en la vista
+            if (debouncedSearchTerm) {
+                const term = `%${debouncedSearchTerm}%`;
+                query = query.or(`nombre.ilike.${term},apellidos.ilike.${term},cedula.ilike.${term}`);
+            }
+            if (selectedSeccional !== "Todas") {
+                query = query.eq('seccional', selectedSeccional);
+            }
+            if (selectedRole !== "Todos") {
+                query = query.eq('role', selectedRole);
+            }
+            if (selectedStatus !== "Todos") {
+                query = query.eq('validado', selectedStatus === "Validado");
+            }
+
+            // Aplicar ordenamiento
+            switch (sortOrder) {
+                case "newest":
+                    query = query.order('created_at', { ascending: false });
+                    break;
+                case "oldest":
+                    query = query.order('created_at', { ascending: true });
+                    break;
+                case "a-z":
+                    query = query.order('nombre', { ascending: true });
+                    break;
+                case "z-a":
+                    query = query.order('nombre', { ascending: false });
+                    break;
+            }
+
+            const { data, error } = await query;
+
+            if (error) throw error;
+
+            if (!data || data.length === 0) {
+                alert('No hay datos para exportar con los filtros aplicados');
+                return;
+            }
+
+            // Preparar datos para Excel
+            const excelData = data.map((item, index) => ({
+                'N°': index + 1,
+                'Nombre': item.nombre,
+                'Apellidos': item.apellidos,
+                'Cédula': item.cedula,
+                'Fecha Nacimiento': item.fecha_nacimiento || 'N/A',
+                'Email': item.email || 'N/A',
+                'Teléfono': item.telefono || 'N/A',
+                'Seccional': item.seccional,
+                'Cargo Organizacional': item.cargo_organizacional || 'N/A',
+                'Role Sistema': item.role,
+                'Estado': item.validado ? 'Validado' : 'Pendiente',
+                'Fecha Registro': new Date(item.created_at).toLocaleDateString('es-ES')
+            }));
+
+            // Crear libro de Excel
+            const ws = XLSX.utils.json_to_sheet(excelData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Afiliados");
+
+            // Ajustar ancho de columnas
+            const colWidths = [
+                { wch: 5 },  // N°
+                { wch: 15 }, // Nombre
+                { wch: 15 }, // Apellidos
+                { wch: 15 }, // Cédula
+                { wch: 15 }, // Fecha Nac
+                { wch: 25 }, // Email
+                { wch: 15 }, // Teléfono
+                { wch: 12 }, // Seccional
+                { wch: 20 }, // Cargo
+                { wch: 12 }, // Role
+                { wch: 10 }, // Estado
+                { wch: 12 }  // Fecha Registro
+            ];
+            ws['!cols'] = colWidths;
+
+            // Generar nombre de archivo
+            const timestamp = new Date().toISOString().split('T')[0];
+            const fileName = `Afiliados_FP_Europa_${timestamp}.xlsx`;
+
+            // Descargar
+            XLSX.writeFile(wb, fileName);
+
+            alert(`✅ Exportación exitosa: ${data.length} afiliados exportados`);
+        } catch (error) {
+            console.error('Error exportando:', error);
+            alert('Error al exportar los datos');
+        }
+    };
 
     // Trigger fetch when parameters change
     useEffect(() => {
@@ -163,6 +314,24 @@ export default function AffiliatesPage() {
                         Nuevo Afiliado
                     </button>
 
+                    <button
+                        onClick={exportToExcel}
+                        className="bg-emerald-600 text-white px-4 py-2.5 rounded-xl font-black uppercase tracking-widest hover:bg-emerald-700 transition-all flex items-center shadow-lg hover:shadow-emerald-900/20 active:scale-95 whitespace-nowrap text-xs"
+                        title="Exportar datos visibles a Excel"
+                    >
+                        <Download size={18} className="mr-2" />
+                        Exportar Excel
+                    </button>
+
+                    <button
+                        onClick={() => setIsImportModalOpen(true)}
+                        className="bg-[#004225] text-white px-4 py-2.5 rounded-xl font-black uppercase tracking-widest hover:bg-[#002b18] transition-all flex items-center shadow-lg hover:shadow-green-900/20 active:scale-95 whitespace-nowrap text-xs"
+                        title="Importar múltiples afiliados desde Excel/CSV"
+                    >
+                        <Upload size={18} className="mr-2" />
+                        Importar
+                    </button>
+
                     <div className="relative group">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-fp-green transition-colors" size={18} />
                         <input
@@ -183,6 +352,9 @@ export default function AffiliatesPage() {
                             >
                                 <option value="Todos">Rol: Todos</option>
                                 <option value="Miembro">Miembro</option>
+                                <option value="Miembro DC">Miembro DC</option>
+                                <option value="Presidente DM">Presidente DM</option>
+                                <option value="Presidente DB">Presidente DB</option>
                                 <option value="Operador">Operador</option>
                                 <option value="Admin">Admin</option>
                             </select>
@@ -213,6 +385,43 @@ export default function AffiliatesPage() {
                                 {SECCIONALES.map(s => <option key={s} value={s}>{s}</option>)}
                             </select>
                         </div>
+
+                        {/* Date Filter */}
+                        <div className="relative group min-w-[170px]">
+                            <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-fp-green transition-colors pointer-events-none" size={16} />
+                            <select
+                                className="w-full pl-9 pr-8 py-2.5 border border-gray-100 bg-white rounded-xl focus:outline-none focus:ring-2 focus:ring-fp-green appearance-none shadow-sm font-medium text-gray-700 text-sm"
+                                value={dateFilter}
+                                onChange={(e) => setDateFilter(e.target.value)}
+                            >
+                                <option value="todos">Cualquier Fecha</option>
+                                <option value="7days">Últimos 7 días</option>
+                                <option value="30days">Últimos 30 días</option>
+                                <option value="90days">Últimos 90 días</option>
+                                <option value="custom">Rango Personalizado</option>
+                            </select>
+                        </div>
+
+                        {/* Custom Date Range Inputs */}
+                        {/* {dateFilter === 'custom' && ( */}
+                        <div className={`flex bg-white border border-gray-100 rounded-xl overflow-hidden shadow-sm items-center transition-all duration-300 ${dateFilter === 'custom' ? 'opacity-100 w-auto' : 'opacity-0 w-0 overflow-hidden pointer-events-none'}`}>
+                            <input
+                                type="date"
+                                value={customStartDate}
+                                onChange={(e) => setCustomStartDate(e.target.value)}
+                                className="px-3 py-2 border-r border-gray-100 text-xs focus:outline-none focus:bg-green-50 text-gray-600 font-medium"
+                                title="Fecha Inicio"
+                            />
+                            <span className="px-2 text-gray-400 text-xs">→</span>
+                            <input
+                                type="date"
+                                value={customEndDate}
+                                onChange={(e) => setCustomEndDate(e.target.value)}
+                                className="px-3 py-2 text-xs focus:outline-none focus:bg-green-50 text-gray-600 font-medium"
+                                title="Fecha Fin"
+                            />
+                        </div>
+                        {/* )} */}
 
                         {/* Sort Filter */}
                         <div className="relative group min-w-[140px]">
@@ -361,6 +570,12 @@ export default function AffiliatesPage() {
             <NewAffiliateModal
                 isOpen={isNewModalOpen}
                 onClose={() => setIsNewModalOpen(false)}
+                onSuccess={() => fetchAffiliates()}
+            />
+
+            <ImportAffiliatesModal
+                isOpen={isImportModalOpen}
+                onClose={() => setIsImportModalOpen(false)}
                 onSuccess={() => fetchAffiliates()}
             />
         </div>

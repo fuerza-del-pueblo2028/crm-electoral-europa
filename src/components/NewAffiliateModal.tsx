@@ -4,6 +4,7 @@ import { useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { SECCIONALES } from "@/lib/mockData";
 import { X, Save, Loader2, Plus } from "lucide-react";
+import { registrarCambio } from "@/lib/historial";
 
 interface NewAffiliateModalProps {
     isOpen: boolean;
@@ -21,7 +22,9 @@ export function NewAffiliateModal({ isOpen, onClose, onSuccess }: NewAffiliateMo
         fechaNacimiento: "",
         seccional: SECCIONALES[0],
         email: "",
-        telefono: ""
+        telefono: "",
+        role: "Miembro" as "Miembro" | "Miembro DC" | "Presidente DM" | "Presidente DB" | "Operador" | "Admin",
+        cargoOrganizacional: ""
     });
 
     const [photoFile, setPhotoFile] = useState<File | null>(null);
@@ -76,6 +79,7 @@ export function NewAffiliateModal({ isOpen, onClose, onSuccess }: NewAffiliateMo
                 fecha_nacimiento: formData.fechaNacimiento,
                 seccional: formData.seccional,
                 email: formData.email,
+                role: formData.role,
                 validado: false,
                 foto_url: uploadedFotoUrl
             };
@@ -85,23 +89,59 @@ export function NewAffiliateModal({ isOpen, onClose, onSuccess }: NewAffiliateMo
                 dataToInsert.telefono = formData.telefono;
             }
 
-            const { error } = await supabase
+            if (formData.cargoOrganizacional && formData.cargoOrganizacional.trim() !== "") {
+                dataToInsert.cargo_organizacional = formData.cargoOrganizacional;
+            }
+
+            const { data: insertedData, error } = await supabase
                 .from('afiliados')
-                .insert([dataToInsert]);
+                .insert([dataToInsert])
+                .select();
 
             if (error) throw error;
 
-            // --- NUEVO: Enviar Email de Bienvenida ---
-            // No esperamos el resultado para no bloquear la UI (fire and forget)
+            // Registrar en el historial
+            if (insertedData && insertedData.length > 0) {
+                await registrarCambio({
+                    afiliado_id: insertedData[0].id,
+                    accion: 'creado',
+                    detalles: {
+                        nombre_completo: `${formData.nombre} ${formData.apellidos}`,
+                        cedula: formData.cedula,
+                        seccional: formData.seccional
+                    }
+                });
+            }
+
+            // --- Email de Bienvenida (Next.js API) ---
             if (formData.email) {
-                fetch('/api/send-welcome.php', {
+                console.log('🔔 Intentando enviar email de bienvenida a:', formData.email);
+
+                fetch('/api/emails/welcome', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         email: formData.email,
                         nombre: `${formData.nombre} ${formData.apellidos}`
                     })
-                }).catch(err => console.error("Error enviando email bienvenida:", err));
+                })
+                    .then(res => {
+                        console.log('📬 Respuesta del servidor de email:', res.status);
+                        return res.json();
+                    })
+                    .then(data => {
+                        console.log('📧 Resultado del envío:', data);
+                        if (data.success) {
+                            console.log('✅ Email enviado exitosamente!');
+                        } else {
+                            console.warn('⚠️ Email no enviado:', data.error || data.warning);
+                        }
+                    })
+                    .catch(err => {
+                        console.error('❌ Error enviando email bienvenida:', err);
+                    });
+            } else {
+                console.log('⚠️ No se envió email - no hay email en el formulario');
             }
             // -----------------------------------------
 
@@ -117,7 +157,9 @@ export function NewAffiliateModal({ isOpen, onClose, onSuccess }: NewAffiliateMo
                 fechaNacimiento: "",
                 seccional: SECCIONALES[0],
                 email: "",
-                telefono: ""
+                telefono: "",
+                role: "Miembro",
+                cargoOrganizacional: ""
             });
             // alert("Afiliado registrado correctamente"); // Replaced by UI feedback
         } catch (error: any) {
@@ -256,6 +298,35 @@ export function NewAffiliateModal({ isOpen, onClose, onSuccess }: NewAffiliateMo
                         >
                             {SECCIONALES.map(s => <option key={s} value={s}>{s}</option>)}
                         </select>
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-bold text-[#005c2b] mb-1">Role</label>
+                        <select
+                            required
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-fp-green bg-white text-gray-700 font-medium"
+                            value={formData.role}
+                            onChange={e => setFormData({ ...formData, role: e.target.value as any })}
+                        >
+                            <option value="Miembro">Miembro (Sin permisos especiales)</option>
+                            <option value="Miembro DC">Miembro DC (Dirección Central)</option>
+                            <option value="Presidente DM">Presidente DM</option>
+                            <option value="Presidente DB">Presidente DB</option>
+                            <option value="Operador">Operador (Puede gestionar afiliados)</option>
+                            <option value="Admin">Admin (Permisos completos)</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-bold text-[#005c2b] mb-1">Cargo Organizacional (Opcional)</label>
+                        <input
+                            type="text"
+                            placeholder="Ej: Secretario General, Vocal, etc."
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-fp-green text-gray-900 font-medium"
+                            value={formData.cargoOrganizacional}
+                            onChange={e => setFormData({ ...formData, cargoOrganizacional: e.target.value })}
+                        />
+                        <p className="text-xs text-gray-400 mt-1">Campo libre para especificar un cargo organizacional</p>
                     </div>
 
                     <div className="flex flex-col items-center space-y-2 py-4 border-t border-b border-gray-50 bg-gray-50/30 rounded-2xl">
