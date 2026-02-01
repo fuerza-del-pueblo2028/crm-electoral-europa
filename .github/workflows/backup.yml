@@ -8,6 +8,10 @@ on:
   # Permitir ejecución manual desde GitHub
   workflow_dispatch:
 
+permissions:
+  contents: write
+  packages: write
+
 jobs:
   backup:
     runs-on: ubuntu-latest
