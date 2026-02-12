@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { dbInsert } from './dbWrite';
 
 export interface HistorialEntry {
     afiliado_id: string;
@@ -18,21 +19,19 @@ export async function registrarCambio(entry: HistorialEntry): Promise<void> {
         const usuarioNombre = localStorage.getItem('user_name') || 'Sistema';
         const usuarioEmail = localStorage.getItem('user_email') || localStorage.getItem('auth_token') || 'sistema@fp.do';
 
-        const { error } = await supabase
-            .from('afiliados_historial')
-            .insert([{
-                afiliado_id: entry.afiliado_id,
-                accion: entry.accion,
-                campo_modificado: entry.campo_modificado || null,
-                valor_anterior: entry.valor_anterior || null,
-                valor_nuevo: entry.valor_nuevo || null,
-                usuario_id: usuarioEmail,
-                usuario_nombre: usuarioNombre,
-                detalles: entry.detalles || null
-            }]);
+        const result = await dbInsert('afiliados_historial', {
+            afiliado_id: entry.afiliado_id,
+            accion: entry.accion,
+            campo_modificado: entry.campo_modificado || null,
+            valor_anterior: entry.valor_anterior || null,
+            valor_nuevo: entry.valor_nuevo || null,
+            usuario_id: usuarioEmail,
+            usuario_nombre: usuarioNombre,
+            detalles: entry.detalles || null
+        });
 
-        if (error) {
-            console.error('Error registrando historial:', error);
+        if (!result.success) {
+            console.error('Error registrando historial:', result.error);
         }
     } catch (error) {
         console.error('Error al registrar cambio en historial:', error);

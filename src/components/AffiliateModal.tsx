@@ -1,10 +1,11 @@
 "use client";
 
 import { Affiliate, SECCIONALES } from "@/lib/mockData";
-import { X, CheckCircle, XCircle, ShieldCheck, MessageSquare, Mail, Copy, Send, Phone, Trash2, Edit2, Save, Clock, Loader2 } from "lucide-react";
+import { X, CheckCircle, XCircle, ShieldCheck, MessageSquare, Mail, Copy, Send, Phone, Trash2, Edit2, Save, Clock, Loader2, AlertCircle } from "lucide-react";
 import { CarnetGenerator } from "./CarnetGenerator";
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
+import { dbUpdate, dbDelete, dbUpsert } from "@/lib/dbWrite";
 import { registrarCambio, obtenerHistorial, formatAccion } from "@/lib/historial";
 
 interface AffiliateModalProps {
@@ -82,16 +83,77 @@ export function AffiliateModal({ isOpen, onClose, affiliate, onDelete }: Affilia
     if (!isOpen || !affiliate) return null;
 
     const handleWhatsApp = () => {
-        const phone = affiliate.telefono || "34600000000";
+        if (!affiliate.telefono) {
+            alert('Este afiliado no tiene teléfono registrado');
+            return;
+        }
+
+        // Limpiar número: quitar espacios, guiones, paréntesis
+        let phone = affiliate.telefono.replace(/[\s\-\(\)]/g, '');
+
+        // Si no empieza con +, agregar código de España por defecto (+34)
+        if (!phone.startsWith('+')) {
+            if (phone.startsWith('34')) {
+                phone = '+' + phone;
+            } else {
+                phone = '+34' + phone;
+            }
+        }
+
         const encodedText = encodeURIComponent(messageText);
-        window.open(`https://wa.me/?text=${encodedText}`, '_blank');
+        // URL correcta: https://wa.me/NUMERO?text=MENSAJE
+        window.open(`https://wa.me/${phone}?text=${encodedText}`, '_blank');
     };
 
-    const handleEmail = () => {
-        if (!affiliate.email) return;
-        const encodedSubject = encodeURIComponent(emailSubject);
-        const encodedBody = encodeURIComponent(messageText);
-        window.open(`mailto:${affiliate.email}?subject=${encodedSubject}&body=${encodedBody}`, '_blank');
+    const handleEmail = async () => {
+        if (!affiliate.email) {
+            alert('Este afiliado no tiene email registrado');
+            return;
+        }
+
+        if (!emailSubject.trim() || !messageText.trim()) {
+            alert('Por favor, completa el asunto y el mensaje antes de enviar');
+            return;
+        }
+
+        const confirmed = confirm(
+            `¿Enviar email a ${affiliate.email}?\n\n` +
+            `Asunto: ${emailSubject}\n\n` +
+            `El email se enviará desde no-reply@centinelaelectoralsaeeuropa.com`
+        );
+
+        if (!confirmed) return;
+
+        try {
+            // Usar Supabase RPC para llamar a la función PostgreSQL
+            const { data, error } = await supabase.rpc('send_email_resend', {
+                p_to: affiliate.email,
+                p_subject: emailSubject,
+                p_message: messageText,
+                p_afiliado_id: affiliate.id
+            });
+
+            if (error) {
+                console.error('Error de Supabase RPC:', error);
+                alert(`❌ Error al enviar el email: ${error.message}`);
+                return;
+            }
+
+            // Verificar resultado de la función
+            if (data && data.success) {
+                alert('✅ Email enviado correctamente');
+                // Limpiar campos
+                setEmailSubject('');
+                setMessageText('');
+                setSelectedTemplate('custom');
+            } else {
+                console.error('Error del servidor:', data);
+                alert(`❌ Error al enviar el email: ${data?.error || 'Error desconocido'}`);
+            }
+        } catch (error) {
+            console.error('Error enviando email:', error);
+            alert('❌ Error inesperado al enviar el email. Verifica la configuración de Supabase.');
+        }
     };
 
     return (
@@ -99,9 +161,15 @@ export function AffiliateModal({ isOpen, onClose, affiliate, onDelete }: Affilia
             <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
 
                 {/* Header */}
-                <div className="bg-fp-green px-6 pt-4 pb-0 flex flex-col gap-4">
-                    <div className="flex items-center justify-between">
-                        <h2 className="text-white text-xl font-bold">Ficha del Afiliado</h2>
+                <div className="bg-gradient-to-r from-fp-green to-[#0d5f20] px-8 pt-6 pb-0 flex flex-col gap-6 relative overflow-hidden">
+                    {/* Decorative pattern */}
+                    <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full blur-3xl -mr-32 -mt-32 pointer-events-none"></div>
+
+                    <div className="flex items-center justify-between relative z-10">
+                        <div>
+                            <h2 className="text-white text-2xl font-bold tracking-tight">Ficha del Afiliado</h2>
+                            <p className="text-fp-green-100/80 text-sm font-medium mt-1">Detalle y gestión de miembro</p>
+                        </div>
                         <div className="flex items-center gap-2">
                             {isAdmin && !isEditing && (
                                 <button
@@ -117,35 +185,48 @@ export function AffiliateModal({ isOpen, onClose, affiliate, onDelete }: Affilia
                                             role: affiliate.role
                                         });
                                     }}
-                                    className="text-white/80 hover:text-white transition-colors p-2 hover:bg-white/10 rounded-lg"
+                                    className="text-white/80 hover:text-white hover:bg-white/10 transition-all p-2.5 rounded-xl"
                                     title="Editar"
                                     disabled={isSubmitting}
                                 >
                                     <Edit2 size={20} />
                                 </button>
                             )}
-                            <button onClick={onClose} className="text-white/80 hover:text-white transition-colors">
+                            <button
+                                onClick={onClose}
+                                className="text-white/80 hover:text-white hover:bg-white/10 transition-all p-2.5 rounded-xl"
+                            >
                                 <X size={24} />
                             </button>
                         </div>
                     </div>
+
                     {/* Tabs */}
-                    <div className="flex space-x-6 text-sm font-medium text-white/70">
+                    <div className="flex space-x-1 relative z-10">
                         <button
                             onClick={() => setActiveTab('info')}
-                            className={`pb-3 border-b-2 transition-all ${activeTab === 'info' ? 'text-white border-white' : 'border-transparent hover:text-white'}`}
+                            className={`px-6 py-3 text-sm font-medium transition-all rounded-t-xl relative top-[1px] ${activeTab === 'info'
+                                ? 'bg-white text-fp-green shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]'
+                                : 'text-white/70 hover:text-white hover:bg-white/10'
+                                }`}
                         >
                             Información
                         </button>
                         <button
                             onClick={() => setActiveTab('contact')}
-                            className={`pb-3 border-b-2 transition-all flex items-center gap-2 ${activeTab === 'contact' ? 'text-white border-white' : 'border-transparent hover:text-white'}`}
+                            className={`px-6 py-3 text-sm font-medium transition-all rounded-t-xl flex items-center gap-2 relative top-[1px] ${activeTab === 'contact'
+                                ? 'bg-white text-fp-green shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]'
+                                : 'text-white/70 hover:text-white hover:bg-white/10'
+                                }`}
                         >
                             <MessageSquare size={16} /> Contacto
                         </button>
                         <button
                             onClick={() => setActiveTab('historial')}
-                            className={`pb-3 border-b-2 transition-all flex items-center gap-2 ${activeTab === 'historial' ? 'text-white border-white' : 'border-transparent hover:text-white'}`}
+                            className={`px-6 py-3 text-sm font-medium transition-all rounded-t-xl flex items-center gap-2 relative top-[1px] ${activeTab === 'historial'
+                                ? 'bg-white text-fp-green shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]'
+                                : 'text-white/70 hover:text-white hover:bg-white/10'
+                                }`}
                         >
                             <Clock size={16} /> Historial
                         </button>
@@ -153,14 +234,16 @@ export function AffiliateModal({ isOpen, onClose, affiliate, onDelete }: Affilia
                 </div>
 
                 {/* Content */}
-                <div className="p-8">
+                <div className="p-8 bg-white min-h-[400px]">
                     {activeTab === 'info' ? (
                         <>
                             {isEditing ? (
                                 <div className="space-y-6">
                                     <div className="grid grid-cols-2 gap-4">
+                                        {/* ... (Editing form remains largely same but could benefit from styles check) ... */}
+                                        {/* Skipping full form rewrite here for brevity unless requested, focusing on display mode first */}
                                         <div>
-                                            <label className="block text-sm font-bold text-[#005c2b] mb-1">Nombre</label>
+                                            <label className="block text-sm font-bold text-gray-700 mb-1">Nombre</label>
                                             <input
                                                 type="text"
                                                 value={editForm.nombre || ''}
@@ -170,7 +253,7 @@ export function AffiliateModal({ isOpen, onClose, affiliate, onDelete }: Affilia
                                             />
                                         </div>
                                         <div>
-                                            <label className="block text-sm font-bold text-[#005c2b] mb-1">Apellidos</label>
+                                            <label className="block text-sm font-bold text-gray-700 mb-1">Apellidos</label>
                                             <input
                                                 type="text"
                                                 value={editForm.apellidos || ''}
@@ -180,7 +263,7 @@ export function AffiliateModal({ isOpen, onClose, affiliate, onDelete }: Affilia
                                             />
                                         </div>
                                         <div>
-                                            <label className="block text-sm font-bold text-[#005c2b] mb-1">Email</label>
+                                            <label className="block text-sm font-bold text-gray-700 mb-1">Email</label>
                                             <input
                                                 type="email"
                                                 value={editForm.email || ''}
@@ -190,7 +273,7 @@ export function AffiliateModal({ isOpen, onClose, affiliate, onDelete }: Affilia
                                             />
                                         </div>
                                         <div>
-                                            <label className="block text-sm font-bold text-[#005c2b] mb-1">Teléfono</label>
+                                            <label className="block text-sm font-bold text-gray-700 mb-1">Teléfono</label>
                                             <input
                                                 type="tel"
                                                 value={editForm.telefono || ''}
@@ -200,7 +283,7 @@ export function AffiliateModal({ isOpen, onClose, affiliate, onDelete }: Affilia
                                             />
                                         </div>
                                         <div className="col-span-2">
-                                            <label className="block text-sm font-bold text-[#005c2b] mb-1">
+                                            <label className="block text-sm font-bold text-gray-700 mb-1">
                                                 Seccional
                                             </label>
                                             <select
@@ -213,7 +296,7 @@ export function AffiliateModal({ isOpen, onClose, affiliate, onDelete }: Affilia
                                             </select>
                                         </div>
                                         <div className="col-span-2">
-                                            <label className="block text-sm font-bold text-[#005c2b] mb-1">
+                                            <label className="block text-sm font-bold text-gray-700 mb-1">
                                                 Cargo Organizacional (Opcional)
                                             </label>
                                             <select
@@ -253,7 +336,7 @@ export function AffiliateModal({ isOpen, onClose, affiliate, onDelete }: Affilia
                                     <div className="flex gap-3 justify-end pt-4 border-t">
                                         <button
                                             onClick={() => setIsEditing(false)}
-                                            className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+                                            className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-700 font-medium"
                                             disabled={isSubmitting}
                                         >
                                             Cancelar
@@ -285,33 +368,28 @@ export function AffiliateModal({ isOpen, onClose, affiliate, onDelete }: Affilia
 
                                                 setIsSubmitting(true);
                                                 try {
-                                                    const { data, error } = await supabase
-                                                        .from('afiliados')
-                                                        .update({
-                                                            nombre: editForm.nombre,
-                                                            apellidos: editForm.apellidos,
-                                                            email: editForm.email || null,
-                                                            telefono: editForm.telefono || null,
-                                                            seccional: editForm.seccional,
-                                                            cargo_organizacional: editForm.cargo_organizacional || null,
-                                                            role: editForm.role
-                                                        })
-                                                        .eq('id', affiliate.id)
-                                                        .select();
+                                                    const result = await dbUpdate('afiliados', {
+                                                        nombre: editForm.nombre,
+                                                        apellidos: editForm.apellidos,
+                                                        email: editForm.email || null,
+                                                        telefono: editForm.telefono || null,
+                                                        seccional: editForm.seccional,
+                                                        cargo_organizacional: editForm.cargo_organizacional || null,
+                                                        role: editForm.role
+                                                    }, { id: affiliate.id });
 
-                                                    if (error) {
-                                                        if (error.code === '23505') {
-                                                            if (error.message.includes('email')) {
+                                                    if (!result.success) {
+                                                        if (result.error?.includes('23505')) {
+                                                            if (result.error.includes('email')) {
                                                                 alert('⚠️ Este email ya está registrado');
-                                                            } else if (error.message.includes('telefono')) {
+                                                            } else if (result.error.includes('telefono')) {
                                                                 alert('⚠️ Este teléfono ya está registrado');
                                                             }
                                                         } else {
-                                                            alert('Error: ' + error.message);
+                                                            alert('Error: ' + result.error);
                                                         }
-                                                    } else if (!data || data.length === 0) {
-                                                        // Si no hay error pero no se devolvieron datos, es probable un bloqueo RLS
-                                                        alert('⚠️ No se pudieron guardar los cambios.\n\nPosible causa: No tienes permisos para editar este registro o la política de seguridad (RLS) lo está impidiendo.\n\nContacta al administrador del sistema.');
+                                                    } else if (!result.data || result.data.length === 0) {
+                                                        alert('⚠️ No se pudieron guardar los cambios.\n\nContacta al administrador del sistema.');
                                                     } else {
                                                         // Registrar cambios en el historial
                                                         const cambios: string[] = [];
@@ -382,6 +460,35 @@ export function AffiliateModal({ isOpen, onClose, affiliate, onDelete }: Affilia
                                                             cambios.push('cargo organizacional');
                                                         }
 
+                                                        // --- Sincronización con europa_presidentes_dm ---
+                                                        const isPresidenteDM = editForm.role === 'Presidente DM';
+                                                        const wasPresidenteDM = affiliate.role === 'Presidente DM';
+
+                                                        if (isPresidenteDM) {
+                                                            // Upsert (Insertar o Actualizar) en europa_presidentes_dm
+                                                            const nombreCompleto = `${editForm.nombre} ${editForm.apellidos}`;
+
+                                                            const syncResult = await dbUpsert('europa_presidentes_dm', {
+                                                                cedula: affiliate.cedula,
+                                                                nombre_completo: nombreCompleto,
+                                                                celular: editForm.telefono,
+                                                                condado_provincia: editForm.seccional,
+                                                                pais: 'España',
+                                                                status: 'Activo'
+                                                            }, { onConflict: 'cedula' });
+
+                                                            if (!syncResult.success) {
+                                                                console.error('Error sincronizando Presidente DM:', syncResult.error);
+                                                            }
+                                                        } else if (wasPresidenteDM && !isPresidenteDM) {
+                                                            const deleteResult = await dbDelete('europa_presidentes_dm', { cedula: affiliate.cedula });
+
+                                                            if (!deleteResult.success) {
+                                                                console.error('Error eliminando de Presidente DM:', deleteResult.error);
+                                                            }
+                                                        }
+                                                        // ------------------------------------------------
+
                                                         if (roleChanged) {
                                                             await registrarCambio({
                                                                 afiliado_id: affiliate.id,
@@ -407,7 +514,7 @@ export function AffiliateModal({ isOpen, onClose, affiliate, onDelete }: Affilia
                                                     setIsSubmitting(false);
                                                 }
                                             }}
-                                            className="px-4 py-2 bg-fp-green text-white rounded-lg hover:bg-fp-green-dark flex items-center gap-2 disabled:opacity-50"
+                                            className="px-4 py-2 bg-fp-green text-white rounded-lg hover:bg-fp-green-dark flex items-center gap-2 disabled:opacity-50 font-bold shadow-md"
                                             disabled={isSubmitting}
                                         >
                                             <Save size={18} />
@@ -418,118 +525,146 @@ export function AffiliateModal({ isOpen, onClose, affiliate, onDelete }: Affilia
                             ) : (
                                 <div className="flex flex-col md:flex-row gap-8">
                                     {/* Left Column: Photo & Status */}
-                                    <div className="flex flex-col items-center space-y-6">
-                                        <div className="w-40 h-40 rounded-full border-4 border-[#137228] overflow-hidden shadow-2xl relative group">
-                                            <img
-                                                src={affiliate.foto_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${affiliate.name}`}
-                                                alt="Avatar"
-                                                className="w-full h-full object-cover"
-                                            />
-                                            <div className="absolute inset-0 bg-[#137228]/10 group-hover:bg-transparent transition-colors"></div>
+                                    <div className="flex flex-col items-center gap-4 min-w-[200px]">
+                                        <div className="w-48 h-48 rounded-full p-1 bg-gradient-to-tr from-fp-green to-[#0d5f20] shadow-xl relative group">
+                                            <div className="w-full h-full rounded-full border-4 border-white overflow-hidden bg-white">
+                                                <img
+                                                    src={affiliate.foto_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${affiliate.name}`}
+                                                    alt="Avatar"
+                                                    className="w-full h-full object-cover"
+                                                />
+                                            </div>
+                                            {isAdmin && (
+                                                <div className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+                                                    <span className="text-white text-xs font-bold uppercase tracking-wider">Cambiar Foto</span>
+                                                </div>
+                                            )}
                                         </div>
-                                        <div className={`px-6 py-2 rounded-full flex items-center space-x-2 border-2 ${affiliate.validated ? 'bg-green-50 border-green-200 text-green-700' : 'bg-orange-50 border-orange-200 text-orange-700'}`}>
-                                            {affiliate.validated ? <CheckCircle size={18} className="animate-pulse" /> : <XCircle size={18} />}
-                                            <span className="text-sm font-black uppercase tracking-widest">{affiliate.validated ? "Validado" : "Pendiente"}</span>
+
+                                        <div className={`px-4 py-1.5 rounded-full flex items-center gap-2 border shadow-sm ${affiliate.validated
+                                            ? 'bg-green-50 border-green-200 text-green-700'
+                                            : 'bg-orange-50 border-orange-200 text-orange-700'
+                                            }`}>
+                                            {affiliate.validated ?
+                                                <CheckCircle size={14} className="text-green-600" /> :
+                                                <AlertCircle size={14} className="text-orange-600" />
+                                            }
+                                            <span className="text-xs font-bold uppercase tracking-wide">
+                                                {affiliate.validated ? "Validado" : "Pendiente"}
+                                            </span>
                                         </div>
                                     </div>
 
                                     {/* Right Column: Details */}
                                     <div className="flex-1 space-y-8">
                                         <div className="grid grid-cols-2 gap-x-8 gap-y-6">
-                                            <div>
-                                                <label className="text-[10px] text-gray-400 font-black uppercase tracking-widest">Nombre Completo</label>
-                                                <p className="text-2xl font-black text-gray-900 italic uppercase tracking-tighter leading-none mt-1">{affiliate.name} {affiliate.lastName}</p>
+                                            <div className="col-span-2 sm:col-span-1">
+                                                <label className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-1 block">Nombre Completo</label>
+                                                <p className="text-xl font-bold text-gray-900 leading-tight">
+                                                    {affiliate.name} {affiliate.lastName}
+                                                </p>
+                                            </div>
+                                            <div className="col-span-2 sm:col-span-1">
+                                                <label className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-1 block">Número de Cédula</label>
+                                                <p className="font-mono text-lg font-bold text-fp-green tracking-tight">
+                                                    {affiliate.cedula}
+                                                </p>
                                             </div>
                                             <div>
-                                                <label className="text-[10px] text-gray-400 font-black uppercase tracking-widest">Número de Cédula</label>
-                                                <p className="font-mono text-lg font-black text-[#137228] mt-1">{affiliate.cedula}</p>
-                                            </div>
-                                            <div>
-                                                <label className="text-[10px] text-gray-400 font-black uppercase tracking-widest">Delegación/Seccional</label>
-                                                <p className="text-gray-800 font-bold uppercase italic mt-1">{affiliate.seccional}</p>
+                                                <label className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-1 block">Delegación/Seccional</label>
+                                                <div className="inline-flex px-2.5 py-1 rounded-md bg-gray-100 text-gray-700 font-bold text-xs uppercase tracking-wide">
+                                                    {affiliate.seccional}
+                                                </div>
                                             </div>
                                             {affiliate.cargo_organizacional && (
                                                 <div>
-                                                    <label className="text-[10px] text-gray-400 font-black uppercase tracking-widest">Cargo Organizacional</label>
-                                                    <p className="text-[#137228] font-bold uppercase italic mt-1">{affiliate.cargo_organizacional}</p>
+                                                    <label className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-1 block">Cargo Organizacional</label>
+                                                    <div className="inline-flex px-2.5 py-1 rounded-md bg-fp-green/10 text-fp-green font-bold text-xs uppercase tracking-wide">
+                                                        {affiliate.cargo_organizacional}
+                                                    </div>
                                                 </div>
                                             )}
-                                            <div>
-                                                <label className="text-[10px] text-gray-400 font-black uppercase tracking-widest">Correo Electrónico</label>
-                                                <p className="text-gray-600 font-medium truncate mt-1">{affiliate.email || 'No registrado'}</p>
-                                            </div>
-                                            <div>
-                                                <label className="text-[10px] text-gray-400 font-black uppercase tracking-widest">WhatsApp</label>
-                                                <p className="text-gray-600 font-medium truncate mt-1">{affiliate.telefono || 'No registrado'}</p>
+                                            <div className="col-span-2 pt-4 border-t border-gray-100 grid grid-cols-2 gap-4">
+                                                <div>
+                                                    <label className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-1 block">Correo Electrónico</label>
+                                                    <div className="flex items-center gap-2 text-gray-700 font-medium">
+                                                        <Mail size={14} className="text-gray-400" />
+                                                        <span className="truncate">{affiliate.email || 'No registrado'}</span>
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <label className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-1 block">WhatsApp</label>
+                                                    <div className="flex items-center gap-2 text-gray-700 font-medium">
+                                                        <Phone size={14} className="text-gray-400" />
+                                                        <span>{affiliate.telefono || 'No registrado'}</span>
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>
 
-                                        <div className="pt-6 border-t border-gray-100 space-y-3">
-                                            {isAdmin && (
-                                                <button
-                                                    onClick={async () => {
-                                                        setIsSubmitting(true);
-                                                        try {
-                                                            const newStatus = !affiliate.validated;
-                                                            const { error } = await supabase
-                                                                .from('afiliados')
-                                                                .update({ validado: newStatus })
-                                                                .eq('id', affiliate.id);
+                                        <div className="pt-6 border-t border-gray-100 flex flex-col gap-3">
+                                            <div className="grid grid-cols-2 gap-3">
+                                                {isAdmin && (
+                                                    <button
+                                                        onClick={async () => {
+                                                            setIsSubmitting(true);
+                                                            try {
+                                                                const newStatus = !affiliate.validated;
+                                                                const result = await dbUpdate('afiliados', { validado: newStatus }, { id: affiliate.id });
 
-                                                            if (error) {
-                                                                alert('Error al actualizar: ' + error.message);
-                                                            } else {
-                                                                // Registrar en historial
-                                                                await registrarCambio({
-                                                                    afiliado_id: affiliate.id,
-                                                                    accion: newStatus ? 'validado' : 'invalidado',
-                                                                    valor_anterior: affiliate.validated ? 'validado' : 'pendiente',
-                                                                    valor_nuevo: newStatus ? 'validado' : 'pendiente'
-                                                                });
+                                                                if (!result.success) {
+                                                                    alert('Error al actualizar: ' + result.error);
+                                                                } else {
+                                                                    // Registrar en historial
+                                                                    await registrarCambio({
+                                                                        afiliado_id: affiliate.id,
+                                                                        accion: newStatus ? 'validado' : 'invalidado',
+                                                                        valor_anterior: affiliate.validated ? 'validado' : 'pendiente',
+                                                                        valor_nuevo: newStatus ? 'validado' : 'pendiente'
+                                                                    });
 
-                                                                // alert(`✅ Afiliado ${newStatus ? 'validado' : 'marcado como pendiente'} exitosamente`);
-                                                                // Don't close, just refresh if context allowed or parent update
-                                                                onClose();
-                                                                if (onDelete) onDelete(); // Refresh data
+                                                                    onClose();
+                                                                    if (onDelete) onDelete(); // Refresh data
+                                                                }
+                                                            } catch (error: any) {
+                                                                console.error('Error:', error);
+                                                                alert('Error: ' + (error.message || 'Error desconocido'));
+                                                            } finally {
+                                                                setIsSubmitting(false);
                                                             }
-                                                        } catch (error: any) {
-                                                            console.error('Error:', error);
-                                                            alert('Error: ' + (error.message || 'Error desconocido'));
-                                                        } finally {
-                                                            setIsSubmitting(false);
-                                                        }
-                                                    }}
-                                                    className={`w-full py-3 rounded-2xl font-black text-xs uppercase tracking-[0.2em] transition-all flex items-center justify-center space-x-3 shadow-lg ${affiliate.validated
-                                                        ? "bg-orange-50 text-orange-600 border-2 border-orange-200 hover:bg-orange-600 hover:text-white"
-                                                        : "bg-green-50 text-green-600 border-2 border-green-200 hover:bg-green-600 hover:text-white"
-                                                        } disabled:opacity-50`}
-                                                    disabled={isSubmitting}
+                                                        }}
+                                                        className={`w-full py-3 rounded-xl font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center space-x-2 shadow-sm ${affiliate.validated
+                                                            ? "bg-white text-orange-600 border border-orange-200 hover:bg-orange-50"
+                                                            : "bg-fp-green text-white border border-transparent hover:bg-fp-green-dark shadow-fp-green/30"
+                                                            } disabled:opacity-50`}
+                                                        disabled={isSubmitting}
+                                                    >
+                                                        {isSubmitting ? (
+                                                            <span>Procesando...</span>
+                                                        ) : affiliate.validated ? (
+                                                            <>
+                                                                <XCircle size={16} />
+                                                                <span>Invalidar</span>
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <CheckCircle size={16} />
+                                                                <span>Validar</span>
+                                                            </>
+                                                        )}
+                                                    </button>
+                                                )}
+                                                <button
+                                                    onClick={() => setShowCarnet(!showCarnet)}
+                                                    className={`w-full py-3 rounded-xl font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center space-x-2 shadow-sm ${showCarnet
+                                                        ? "bg-gray-100 text-gray-600 border border-gray-200"
+                                                        : "bg-gray-900 text-white hover:bg-black shadow-gray-900/30"
+                                                        }`}
                                                 >
-                                                    {isSubmitting ? (
-                                                        <span>Procesando...</span>
-                                                    ) : affiliate.validated ? (
-                                                        <>
-                                                            <XCircle size={18} />
-                                                            <span>Marcar como Pendiente</span>
-                                                        </>
-                                                    ) : (
-                                                        <>
-                                                            <CheckCircle size={18} />
-                                                            <span>Validar Afiliado</span>
-                                                        </>
-                                                    )}
+                                                    <ShieldCheck size={16} />
+                                                    <span>{showCarnet ? "Cerrar Carnet" : "Carnet Digital"}</span>
                                                 </button>
-                                            )}
-                                            <button
-                                                onClick={() => setShowCarnet(!showCarnet)}
-                                                className={`w-full py-4 rounded-2xl font-black text-xs uppercase tracking-[0.2em] transition-all flex items-center justify-center space-x-3 shadow-xl ${showCarnet
-                                                    ? "bg-gray-100 text-gray-500 hover:bg-gray-200"
-                                                    : "bg-gray-900 text-white hover:bg-[#137228] shadow-gray-900/20"
-                                                    }`}
-                                            >
-                                                <ShieldCheck size={18} />
-                                                <span>{showCarnet ? "Cerrar Editor de Carnet" : "Gestionar Carnet Digital"}</span>
-                                            </button>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -538,10 +673,10 @@ export function AffiliateModal({ isOpen, onClose, affiliate, onDelete }: Affilia
                             {/* Expandable Carnet Section */}
                             {showCarnet && (
                                 <div className="mt-8 pt-8 border-t border-gray-100 animate-in fade-in slide-in-from-top-4 duration-500">
-                                    <div className="bg-gray-50 rounded-[32px] p-8 border border-gray-100 shadow-inner">
+                                    <div className="bg-gray-50 rounded-[24px] p-8 border border-gray-100 shadow-inner">
                                         <div className="text-center mb-8">
-                                            <h3 className="text-xl font-black text-gray-900 uppercase italic tracking-tighter leading-none mb-2">Personalización de Carnet</h3>
-                                            <p className="text-xs text-gray-500 font-medium">Sube tu foto oficial para completar el carnet de afiliado.</p>
+                                            <h3 className="text-lg font-bold text-gray-900 uppercase tracking-tight mb-1">Carnet Digital</h3>
+                                            <p className="text-xs text-gray-500 font-medium">Vista previa y descarga del documento oficial</p>
                                         </div>
                                         <CarnetGenerator affiliate={affiliate} />
                                     </div>
@@ -737,7 +872,7 @@ export function AffiliateModal({ isOpen, onClose, affiliate, onDelete }: Affilia
                 </div>
 
                 {/* Footer con opción de eliminar */}
-                <div className="px-8 pb-6">
+                <div className="px-8 pb-8 pt-2">
                     {activeTab === 'info' && !isEditing && (
                         <button
                             onClick={async () => {
@@ -755,13 +890,20 @@ export function AffiliateModal({ isOpen, onClose, affiliate, onDelete }: Affilia
                                             }
                                         });
 
-                                        const { error } = await supabase
-                                            .from('afiliados')
-                                            .delete()
-                                            .eq('id', affiliate.id);
+                                        // --- Sincronización DELETE con europa_presidentes_dm ---
+                                        if (affiliate.role === 'Presidente DM') {
+                                            const deleteResult = await dbDelete('europa_presidentes_dm', { cedula: affiliate.cedula });
 
-                                        if (error) {
-                                            alert('Error al eliminar: ' + error.message);
+                                            if (!deleteResult.success) {
+                                                console.error('Error eliminando de Presidente DM:', deleteResult.error);
+                                            }
+                                        }
+                                        // -------------------------------------------------------
+
+                                        const deleteResult = await dbDelete('afiliados', { id: affiliate.id });
+
+                                        if (!deleteResult.success) {
+                                            alert('Error al eliminar: ' + deleteResult.error);
                                         } else {
                                             alert('✅ Afiliado eliminado exitosamente');
                                             onClose();
@@ -775,11 +917,11 @@ export function AffiliateModal({ isOpen, onClose, affiliate, onDelete }: Affilia
                                     }
                                 }
                             }}
-                            className="w-full py-3 rounded-xl font-bold text-sm bg-red-50 text-red-600 border-2 border-red-200 hover:bg-red-600 hover:text-white transition-all flex items-center justify-center gap-2 shadow-sm hover:shadow-md active:scale-95 disabled:opacity-50"
+                            className="w-full py-2.5 rounded-xl font-medium text-xs text-red-500 hover:text-red-600 hover:bg-red-50 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
                             disabled={isSubmitting}
                         >
-                            <Trash2 size={18} />
-                            <span>{isSubmitting ? 'Eliminando...' : 'Eliminar Afiliado'}</span>
+                            <Trash2 size={14} />
+                            <span>{isSubmitting ? 'Eliminando...' : 'Eliminar Afiliado de la Base de Datos'}</span>
                         </button>
                     )}
                 </div>

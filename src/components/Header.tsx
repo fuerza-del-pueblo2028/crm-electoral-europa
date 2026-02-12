@@ -43,7 +43,7 @@ export function Header() {
                     <Menu size={24} />
                 </button>
                 <Link href="/" className="flex items-center space-x-3 md:space-x-4">
-                    <img src="/logo-fp.png" alt="FP Logo" className="w-10 h-10 md:w-16 md:h-16 object-contain drop-shadow-md flex-shrink-0" />
+                    <img src="/logo-fp.png" alt="FP" className="w-10 h-10 md:w-16 md:h-16 object-contain drop-shadow-md flex-shrink-0 p-1 rounded-lg" style={{ backgroundColor: '#e5e0e0' }} />
                     <div className="flex flex-col justify-center overflow-hidden">
                         <h1
                             className="text-white text-sm sm:text-lg md:text-2xl font-bold tracking-tight leading-none truncate block"

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { X, Lock, ShieldCheck, Loader2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
+import { dbUpdate } from "@/lib/dbWrite";
 import { cn } from "@/lib/utils";
 
 interface ChangePasswordModalProps {
@@ -56,12 +57,9 @@ export function ChangePasswordModal({ isOpen, onClose, userCedula }: ChangePassw
             }
 
             // 2. Actualizar contraseña
-            const { error: updateError } = await supabase
-                .from('usuarios')
-                .update({ password: newPassword })
-                .eq('cedula', userCedula);
+            const result = await dbUpdate('usuarios', { password: newPassword }, { cedula: userCedula });
 
-            if (updateError) throw updateError;
+            if (!result.success) throw new Error(result.error);
 
             setSuccess("¡Contraseña actualizada con éxito!");
             setTimeout(() => {

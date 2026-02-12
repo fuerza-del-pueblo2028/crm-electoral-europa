@@ -8,7 +8,7 @@ import { AffiliateModal } from "@/components/AffiliateModal";
 import { NewAffiliateModal } from "@/components/NewAffiliateModal";
 import { ImportAffiliatesModal } from "@/components/ImportAffiliatesModal";
 import { supabase } from "@/lib/supabase";
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 
 // Debounce helper
 function useDebounce<T>(value: T, delay: number): T {
@@ -251,34 +251,66 @@ export default function AffiliatesPage() {
                 'Fecha Registro': new Date(item.created_at).toLocaleDateString('es-ES')
             }));
 
-            // Crear libro de Excel
-            const ws = XLSX.utils.json_to_sheet(excelData);
-            const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, "Afiliados");
+            // Crear libro de Excel con ExcelJS
+            const workbook = new ExcelJS.Workbook();
+            const worksheet = workbook.addWorksheet('Afiliados');
 
-            // Ajustar ancho de columnas
-            const colWidths = [
-                { wch: 5 },  // N°
-                { wch: 15 }, // Nombre
-                { wch: 15 }, // Apellidos
-                { wch: 15 }, // Cédula
-                { wch: 15 }, // Fecha Nac
-                { wch: 25 }, // Email
-                { wch: 15 }, // Teléfono
-                { wch: 12 }, // Seccional
-                { wch: 20 }, // Cargo
-                { wch: 12 }, // Role
-                { wch: 10 }, // Estado
-                { wch: 12 }  // Fecha Registro
+            // Definir columnas con anchos
+            worksheet.columns = [
+                { header: 'N°', key: 'num', width: 5 },
+                { header: 'Nombre', key: 'nombre', width: 15 },
+                { header: 'Apellidos', key: 'apellidos', width: 15 },
+                { header: 'Cédula', key: 'cedula', width: 15 },
+                { header: 'Fecha Nacimiento', key: 'fecha_nac', width: 15 },
+                { header: 'Email', key: 'email', width: 25 },
+                { header: 'Teléfono', key: 'telefono', width: 15 },
+                { header: 'Seccional', key: 'seccional', width: 12 },
+                { header: 'Cargo Organizacional', key: 'cargo', width: 20 },
+                { header: 'Role Sistema', key: 'role', width: 12 },
+                { header: 'Estado', key: 'estado', width: 10 },
+                { header: 'Fecha Registro', key: 'fecha_reg', width: 12 }
             ];
-            ws['!cols'] = colWidths;
+
+            // Añadir filas
+            excelData.forEach(row => {
+                worksheet.addRow({
+                    num: row['N°'],
+                    nombre: row['Nombre'],
+                    apellidos: row['Apellidos'],
+                    cedula: row['Cédula'],
+                    fecha_nac: row['Fecha Nacimiento'],
+                    email: row['Email'],
+                    telefono: row['Teléfono'],
+                    seccional: row['Seccional'],
+                    cargo: row['Cargo Organizacional'],
+                    role: row['Role Sistema'],
+                    estado: row['Estado'],
+                    fecha_reg: row['Fecha Registro']
+                });
+            });
+
+            // Estilo del header
+            worksheet.getRow(1).font = { bold: true };
+            worksheet.getRow(1).fill = {
+                type: 'pattern',
+                pattern: 'solid',
+                fgColor: { argb: 'FF005C2B' }
+            };
+            worksheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
 
             // Generar nombre de archivo
             const timestamp = new Date().toISOString().split('T')[0];
             const fileName = `Afiliados_FP_Europa_${timestamp}.xlsx`;
 
-            // Descargar
-            XLSX.writeFile(wb, fileName);
+            // Descargar - generar buffer y crear blob para descarga
+            const buffer = await workbook.xlsx.writeBuffer();
+            const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = fileName;
+            link.click();
+            window.URL.revokeObjectURL(url);
 
             alert(`✅ Exportación exitosa: ${data.length} afiliados exportados`);
         } catch (error) {

@@ -2,8 +2,9 @@
 
 import { X, Upload, FileSpreadsheet, AlertCircle, CheckCircle, Loader2 } from "lucide-react";
 import { useState, useRef } from "react";
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 import { supabase } from "@/lib/supabase";
+import { dbInsert } from "@/lib/dbWrite";
 import { registrarCambio } from "@/lib/historial";
 
 type ImportResult = {
@@ -80,12 +81,40 @@ export function ImportAffiliatesModal({ isOpen, onClose, onSuccess }: Props) {
         const importResults: ImportResult[] = [];
 
         try {
-            // Leer archivo
+            // Leer archivo con ExcelJS
             const data = await file.arrayBuffer();
-            const workbook = XLSX.read(data);
-            const sheetName = workbook.SheetNames[0];
-            const worksheet = workbook.Sheets[sheetName];
-            const jsonData = XLSX.utils.sheet_to_json(worksheet);
+            const workbook = new ExcelJS.Workbook();
+            await workbook.xlsx.load(data);
+            const worksheet = workbook.worksheets[0];
+
+            if (!worksheet || worksheet.rowCount <= 1) {
+                alert('⚠️ El archivo está vacío');
+                setImporting(false);
+                return;
+            }
+
+            // Obtener headers de la primera fila
+            const headers: string[] = [];
+            const headerRow = worksheet.getRow(1);
+            headerRow.eachCell((cell, colNumber) => {
+                headers[colNumber] = cell.value?.toString().toLowerCase().trim() || '';
+            });
+
+            // Convertir a JSON
+            const jsonData: any[] = [];
+            worksheet.eachRow((row, rowNumber) => {
+                if (rowNumber === 1) return; // Skip header
+                const rowData: any = {};
+                row.eachCell((cell, colNumber) => {
+                    const header = headers[colNumber];
+                    if (header) {
+                        rowData[header] = cell.value;
+                    }
+                });
+                if (Object.keys(rowData).length > 0) {
+                    jsonData.push(rowData);
+                }
+            });
 
             if (jsonData.length === 0) {
                 alert('⚠️ El archivo está vacío');
@@ -128,20 +157,16 @@ export function ImportAffiliatesModal({ isOpen, onClose, onSuccess }: Props) {
 
                 // Intentar insertar
                 try {
-                    const { data: inserted, error } = await supabase
-                        .from('afiliados')
-                        .insert(affiliateData)
-                        .select()
-                        .single();
+                    const result = await dbInsert('afiliados', affiliateData);
 
-                    if (error) {
-                        let errorMsg = error.message;
+                    if (!result.success) {
+                        let errorMsg = result.error || 'Error desconocido';
 
                         // Errores comunes más legibles
-                        if (error.code === '23505') {
-                            if (error.message.includes('cedula')) errorMsg = 'Cédula ya existe';
-                            else if (error.message.includes('email')) errorMsg = 'Email ya registrado';
-                            else if (error.message.includes('telefono')) errorMsg = 'Teléfono ya registrado';
+                        if (errorMsg.includes('23505') || errorMsg.includes('duplicate')) {
+                            if (errorMsg.includes('cedula')) errorMsg = 'Cédula ya existe';
+                            else if (errorMsg.includes('email')) errorMsg = 'Email ya registrado';
+                            else if (errorMsg.includes('telefono')) errorMsg = 'Teléfono ya registrado';
                             else errorMsg = 'Registro duplicado';
                         }
 
@@ -152,15 +177,18 @@ export function ImportAffiliatesModal({ isOpen, onClose, onSuccess }: Props) {
                             error: errorMsg
                         });
                     } else {
+                        const inserted = result.data?.[0];
                         // Registrar en historial
-                        await registrarCambio({
-                            afiliado_id: inserted.id,
-                            accion: 'creado',
-                            detalles: {
-                                origen: 'importacion_masiva',
-                                nombre_completo: `${affiliateData.nombre} ${affiliateData.apellidos}`
-                            }
-                        });
+                        if (inserted) {
+                            await registrarCambio({
+                                afiliado_id: inserted.id,
+                                accion: 'creado',
+                                detalles: {
+                                    origen: 'importacion_masiva',
+                                    nombre_completo: `${affiliateData.nombre} ${affiliateData.apellidos}`
+                                }
+                            });
+                        }
 
                         importResults.push({
                             success: true,

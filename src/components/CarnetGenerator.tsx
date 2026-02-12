@@ -5,6 +5,7 @@ import { QrCode, ShieldCheck, Upload, Download, Loader2 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import html2canvas from "html2canvas";
 import { supabase } from "@/lib/supabase";
+import { dbUpdate } from "@/lib/dbWrite";
 
 export function CarnetGenerator({ affiliate }: { affiliate: Affiliate }) {
     const [idPhoto, setIdPhoto] = useState<string | null>(null);
@@ -51,13 +52,10 @@ export function CarnetGenerator({ affiliate }: { affiliate: Affiliate }) {
                 .getPublicUrl(filePath);
 
             // 3. Actualizar registro en la tabla afiliados
-            const { error: updateError } = await supabase
-                .from('afiliados')
-                .update({ foto_url: publicUrl })
-                .eq('id', affiliate.id);
+            const result = await dbUpdate('afiliados', { foto_url: publicUrl }, { id: affiliate.id });
 
-            if (updateError) {
-                console.error('Error al actualizar DB:', updateError);
+            if (!result.success) {
+                console.error('Error al actualizar DB:', result.error);
                 alert('⚠️ Foto subida pero no se pudo actualizar el registro.');
                 return;
             }

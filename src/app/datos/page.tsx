@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { BarChart3, ChevronRight, MapPin, Download, Home, ArrowLeft, Users, Building2, School, TrendingUp, PieChart as PieChartIcon, CheckCircle2, AlertCircle, Trash2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
+import { dbDelete } from "@/lib/dbWrite";
 import {
     BarChart,
     Bar,
@@ -144,12 +145,9 @@ export default function DatosElectorales() {
         if (!confirm(confirmMessage)) return;
 
         try {
-            const { error } = await supabase
-                .from('actas_electorales')
-                .delete()
-                .match(deleteCondition);
+            const result = await dbDelete('actas_electorales', deleteCondition);
 
-            if (error) throw error;
+            if (!result.success) throw new Error(result.error);
 
             alert(`Eliminación exitosa`);
             await fetchData(); // Reload data

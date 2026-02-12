@@ -139,7 +139,7 @@ export default function StatutesPage() {
                 <div className="p-6 border-b border-gray-100 bg-white/50 backdrop-blur-md sticky top-0 z-10">
                     <div className="flex items-center gap-3 mb-6">
                         <div className="bg-[#137228] p-3 rounded-[20px] text-white shadow-lg shadow-green-900/30 border-4 border-green-50 animate-pulse-subtle">
-                            <Book size={24} />
+                            <img src="/logo-fp.png" alt="FP" className="w-6 h-6 object-contain bg-white rounded-md p-0.5" />
                         </div>
                         <div className="flex flex-col">
                             <h1 className="text-xl font-black text-gray-900 tracking-tight uppercase leading-none">Estatutos</h1>

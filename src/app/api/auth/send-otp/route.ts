@@ -4,6 +4,13 @@ import { Resend } from 'resend';
 // Inicializar Resend con la key ya configurada en .env.local
 const resend = new Resend(process.env.RESEND_API_KEY);
 
+import { createClient } from '@supabase/supabase-js';
+
+const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
+
 export async function POST(request: Request) {
     try {
         const body = await request.json();
@@ -13,6 +20,26 @@ export async function POST(request: Request) {
 
         if (!email || !otp) {
             return NextResponse.json({ error: 'Email y OTP son requeridos' }, { status: 400 });
+        }
+
+        // SEGURIDAD: Verificar que el email no esté duplicado en el padrón
+        // "Candado de Seguridad": Un email = Un Votante.
+        const { count, error: countError } = await supabase
+            .from('elecciones_padron')
+            .select('*', { count: 'exact', head: true })
+            .eq('email', email);
+
+        if (countError) {
+            console.error('[Auth Service] Error verificando duplicados:', countError);
+            // Fallback: Permitir envío si falla la verificación para no bloquear por error de DB, 
+            // o Bloquear si se prefiere seguridad estricta. Optamos por loguear.
+        }
+
+        if (count && count > 1) {
+            console.warn(`[Auth Service] BLOQUEADO: El email ${email} está asociado a ${count} cuentas.`);
+            return NextResponse.json({
+                error: 'Por seguridad, este correo electrónico no puede recibir códigos porque está asociado a varios usuarios. Contacte soporte.'
+            }, { status: 403 });
         }
 
         // Enviar correo con Resend

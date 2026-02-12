@@ -1,0 +1,27 @@
+Analizando estructura de la tabla afiliados...
+1. Verificando existencia de columnas seccional y cargo_organizacional...
+✅ Columnas detectadas correctamente (la consulta Select no falló).
+Muestra de datos: {
+  "id": "1258b1b9-e569-4251-a379-621f7e2f200a",
+  "seccional": "Milano",
+  "cargo_organizacional": "Presidente DB"
+}
+
+2. Analizando distribución de datos por Cargo Organizacional...
+Distribución por Cargo Organizacional:
+{
+  "Presidente DB": 3,
+  "Presidente DM": 9,
+  "Miembro DC": 1
+}
+Registros sin cargo definido (NULL): 1
+
+⚠️ ADVERTENCIA: No se encontraron afiliados con los siguientes roles requeridos: ["Miembro Dirección Central"]
+
+3. Analizando distribución de datos por Seccional...
+Distribución por Seccional:
+{
+  "Milano": 13,
+  "Madrid": 1
+}
+Registros sin seccional definida (NULL): 0

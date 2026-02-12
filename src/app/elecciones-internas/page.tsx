@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
+import { dbInsert, dbUpdate } from "@/lib/dbWrite";
 import { UserCheck, KeyRound, Vote, CheckCircle2, AlertCircle, ArrowRight, Loader2, ShieldCheck, Trophy, RefreshCw, BarChart3, LogOut } from "lucide-react";
 
 export default function VotingBooth() {
@@ -27,13 +28,14 @@ export default function VotingBooth() {
         if (savedSession) {
             const data = JSON.parse(savedSession);
             setVoterData(data);
+            setVoterData(data);
             setStep("waiting");
-            checkActiveRound(data.cedula);
+            checkActiveRound(data.cedula, data.seccional);
         }
     }, []);
 
     // 2. Continuous check for active rounds
-    const checkActiveRound = useCallback(async (voterCedula: string) => {
+    const checkActiveRound = useCallback(async (voterCedula: string, voterSeccional: string = 'Todas') => {
         if (!voterCedula) return;
         setRefreshing(true);
         try {
@@ -49,6 +51,20 @@ export default function VotingBooth() {
                 return;
             }
 
+            // FILTER: Only show cargos relevant to the voter (and global ones)
+            const visibleCargos = activeCargos.filter(cargo => {
+                // Si no tiene seccional definida o es 'Europa'/'Todas', es global.
+                // Si tiene seccional específica, debe coincidir con la del votante.
+                if (!cargo.seccional || cargo.seccional === 'Europa' || cargo.seccional === 'Todas') return true;
+                return cargo.seccional === voterSeccional;
+            });
+
+            if (visibleCargos.length === 0) {
+                setCurrentCargo(null);
+                setStep("waiting");
+                return;
+            }
+
             // 2. Check which one the user hasn't voted for yet
             const { data: castVotes } = await supabase
                 .from('elecciones_votos_emitidos')
@@ -56,7 +72,7 @@ export default function VotingBooth() {
                 .eq('cedula_voter', voterCedula);
 
             const castCargoIds = castVotes?.map(v => v.cargo_id) || [];
-            const nextCargo = activeCargos.find(c => !castCargoIds.includes(c.id));
+            const nextCargo = visibleCargos.find(c => !castCargoIds.includes(c.id));
 
             if (nextCargo) {
                 setCurrentCargo(nextCargo);
@@ -93,7 +109,7 @@ export default function VotingBooth() {
             setGeneratedOtp(code);
 
             try {
-                const res = await fetch('/api/send-otp.php', {
+                const res = await fetch('/api/auth/send-otp', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -112,7 +128,21 @@ export default function VotingBooth() {
                 throw new Error("No se pudo enviar el código a tu correo. Por favor contacta soporte.");
             }
 
-            setVoterData(data);
+
+            // FETCH SECCIONAL FROM AFILIADOS
+            let userSeccional = 'Todas';
+            const { data: afiliadosData } = await supabase
+                .from('afiliados')
+                .select('seccional')
+                .eq('cedula', cedula)
+                .single();
+
+            if (afiliadosData && afiliadosData.seccional) {
+                userSeccional = afiliadosData.seccional;
+            }
+
+            const voterSession = { ...data, seccional: userSeccional };
+            setVoterData(voterSession);
             setStep("otp");
         } catch (err: any) {
             setError(err.message);
@@ -126,7 +156,7 @@ export default function VotingBooth() {
         if (otp === generatedOtp) {
             // Persist Session
             localStorage.setItem("voter_session", JSON.stringify(voterData));
-            checkActiveRound(voterData.cedula);
+            checkActiveRound(voterData.cedula, voterData.seccional);
         } else {
             setError("Código OTP incorrecto.");
         }
@@ -139,23 +169,21 @@ export default function VotingBooth() {
 
         try {
             // Register vote
-            const { error: voteError } = await supabase
-                .from('elecciones_votos_emitidos')
-                .insert([{
-                    cedula_voter: voterData.cedula,
-                    cargo_id: currentCargo.id
-                }]);
+            const voteResult = await dbInsert('elecciones_votos_emitidos', {
+                cedula_voter: voterData.cedula,
+                cargo_id: currentCargo.id
+            });
 
-            if (voteError) throw voteError;
+            if (!voteResult.success) throw new Error(voteResult.error);
 
             // Increment count
-            await supabase
-                .from('elecciones_candidatos')
-                .update({ votos_count: (selectedCandidato.votos_count || 0) + 1 })
-                .eq('id', selectedCandidato.id);
+            await dbUpdate('elecciones_candidatos',
+                { votos_count: (selectedCandidato.votos_count || 0) + 1 },
+                { id: selectedCandidato.id }
+            );
 
             setSelectedCandidato(null);
-            checkActiveRound(voterData.cedula);
+            checkActiveRound(voterData.cedula, voterData.seccional);
         } catch (err: any) {
             setError(err.message);
         } finally {
@@ -173,7 +201,7 @@ export default function VotingBooth() {
             {/* Header / Logo */}
             <div className="mb-8 text-center animate-in fade-in duration-700">
                 <div className="bg-[#137228] p-4 rounded-full inline-block shadow-lg mb-4">
-                    <Vote className="text-white" size={40} />
+                    <img src="/logo-fp.png" alt="FP" className="w-10 h-10 object-contain rounded-lg p-1" style={{ backgroundColor: '#e5e0e0' }} />
                 </div>
                 <h1 className="text-3xl font-bold text-[#137228]">Centro de Votación</h1>
                 <p className="text-gray-500 font-medium">Elecciones Internas</p>
@@ -285,7 +313,7 @@ export default function VotingBooth() {
 
                             <div className="flex gap-4 w-full">
                                 <button
-                                    onClick={() => checkActiveRound(voterData?.cedula)}
+                                    onClick={() => checkActiveRound(voterData?.cedula, voterData?.seccional)}
                                     disabled={refreshing}
                                     className="flex-1 bg-white text-[#00843D] py-4 rounded-2xl font-bold border-2 border-[#00843D] hover:bg-green-50 transition-all flex items-center justify-center gap-2"
                                 >

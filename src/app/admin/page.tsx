@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { Upload, FileText, Settings, Trash2, X, Book, UserPlus, Users, LayoutDashboard, KeyRound, BarChart3, Eye, Vote, UserCheck, ShieldCheck, Trophy, PlusCircle, Search, EyeOff, RefreshCw, Play, Lock, Image as ImageIcon, FileSearch, CheckCircle2, Loader2, Link as LinkIcon, FolderOpen, AlertTriangle } from "lucide-react";
 import { supabase } from "@/lib/supabase";
+import { dbInsert, dbUpdate, dbDelete } from "@/lib/dbWrite";
 
 export default function AdminPage() {
     const [isMounted, setIsMounted] = useState(false);
@@ -22,6 +23,7 @@ export default function AdminPage() {
     const [cargos, setCargos] = useState<any[]>([]);
     const [candidatos, setCandidatos] = useState<any[]>([]);
     const [padron, setPadron] = useState<any[]>([]);
+    const [filterSeccional, setFilterSeccional] = useState("Todas"); // New filter state
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [filePreview, setFilePreview] = useState<string | null>(null);
     const [dragActive, setDragActive] = useState(false);
@@ -44,7 +46,7 @@ export default function AdminPage() {
         votos_nulos: 0
     });
     const [editingActa, setEditingActa] = useState<any | null>(null);
-    const [cargoForm, setCargoForm] = useState({ titulo: "" });
+    const [cargoForm, setCargoForm] = useState({ titulo: "", seccional: "Europa" });
     const [editingCargo, setEditingCargo] = useState<any | null>(null);
     const [candidatoForm, setCandidatoForm] = useState({ nombre: "", cargo_id: "" });
     const [editingCandidato, setEditingCandidato] = useState<any | null>(null);
@@ -96,11 +98,48 @@ export default function AdminPage() {
     };
 
     const fetchPadron = async () => {
-        const { data } = await supabase
-            .from('elecciones_padron')
-            .select('*')
-            .order('nombre', { ascending: true });
-        if (data) setPadron(data);
+        try {
+            // 1. Fetch padron
+            const { data: padronData, error: padronError } = await supabase
+                .from('elecciones_padron')
+                .select('*')
+                .order('nombre', { ascending: true });
+
+            if (padronError) throw padronError;
+            if (!padronData || padronData.length === 0) {
+                setPadron([]);
+                return;
+            }
+
+            // 2. Fetch ALL afiliados info to guarantee matching regardless of format (dashes/no dashes)
+            // Ideally we would do this in SQL, but for now client-side matching is most robust against dirty data.
+            const { data: afiliadosData, error: affError } = await supabase
+                .from('afiliados')
+                .select('cedula, seccional');
+
+            if (affError) console.error("Error fetching afiliados details:", affError);
+
+            // 3. Merge data using normalized matching
+            const mergedPadron = padronData.map(p => {
+                // Normalize Padrón Cedula
+                const padronCedulaClean = p.cedula.replace(/\D/g, ''); // Remove all non-digits
+
+                // Find in Afiliados (normalizing there too)
+                const afiliado = afiliadosData?.find(a => {
+                    const afiliadoCedulaClean = a.cedula.replace(/\D/g, '');
+                    return afiliadoCedulaClean === padronCedulaClean;
+                });
+
+                return {
+                    ...p,
+                    seccional: afiliado?.seccional || 'Sin definir'
+                };
+            });
+
+            setPadron(mergedPadron);
+        } catch (error) {
+            console.error("Error loading padron:", error);
+        }
     };
 
     const fetchActas = async () => {
@@ -137,22 +176,17 @@ export default function AdminPage() {
         e.preventDefault();
         try {
             if (editingUser) {
-                const { error } = await supabase
-                    .from('usuarios')
-                    .update({
-                        nombre: userForm.nombre,
-                        cedula: userForm.cedula,
-                        rol: userForm.rol,
-                        seccional: userForm.rol === 'administrador' ? null : userForm.seccional
-                    })
-                    .eq('id', editingUser.id);
-                if (error) throw error;
+                const result = await dbUpdate('usuarios', {
+                    nombre: userForm.nombre,
+                    cedula: userForm.cedula,
+                    rol: userForm.rol,
+                    seccional: userForm.rol === 'administrador' ? null : userForm.seccional
+                }, { id: editingUser.id });
+                if (!result.success) throw new Error(result.error);
                 alert("Usuario actualizado correctamente");
             } else {
-                const { error } = await supabase
-                    .from('usuarios')
-                    .insert([userForm]);
-                if (error) throw error;
+                const result = await dbInsert('usuarios', userForm);
+                if (!result.success) throw new Error(result.error);
                 alert("Usuario creado correctamente");
             }
             setIsUserModalOpen(false);
@@ -167,12 +201,9 @@ export default function AdminPage() {
     const handleDeleteUser = async (id: string) => {
         if (!confirm("¿Eliminar este usuario? Esta acción no se puede deshacer.")) return;
 
-        const { error } = await supabase
-            .from('usuarios')
-            .delete()
-            .eq('id', id);
+        const result = await dbDelete('usuarios', { id });
 
-        if (error) alert("Error al eliminar: " + error.message);
+        if (!result.success) alert("Error al eliminar: " + result.error);
         else {
             alert("Usuario eliminado");
             fetchUsers();
@@ -193,12 +224,9 @@ export default function AdminPage() {
         }
 
         try {
-            const { error } = await supabase
-                .from('usuarios')
-                .update({ password: newPassword })
-                .eq('id', resettingUser.id);
+            const result = await dbUpdate('usuarios', { password: newPassword }, { id: resettingUser.id });
 
-            if (error) throw error;
+            if (!result.success) throw new Error(result.error);
             alert(`Contraseña de ${resettingUser.nombre} actualizada correctamente.`);
             setResettingUser(null);
         } catch (error: any) {
@@ -212,17 +240,17 @@ export default function AdminPage() {
         try {
             let error;
             if (editingCargo) {
-                const { error: dbError } = await supabase.from('elecciones_cargos').update(cargoForm).eq('id', editingCargo.id);
-                error = dbError;
+                const result = await dbUpdate('elecciones_cargos', cargoForm, { id: editingCargo.id });
+                if (!result.success) error = { message: result.error };
             } else {
-                const { error: dbError } = await supabase.from('elecciones_cargos').insert([cargoForm]);
-                error = dbError;
+                const result = await dbInsert('elecciones_cargos', cargoForm);
+                if (!result.success) error = { message: result.error };
             }
             if (error) throw error;
 
             alert(editingCargo ? "Cargo actualizado" : "Cargo creado");
             setIsCargoModalOpen(false);
-            setCargoForm({ titulo: "" });
+            setCargoForm({ titulo: "", seccional: "Europa" });
             setEditingCargo(null);
             fetchCargos();
         } catch (error: any) {
@@ -232,7 +260,7 @@ export default function AdminPage() {
 
     const handleDeleteCargo = async (id: string) => {
         if (!confirm("¿Eliminar este cargo y todos sus candidatos?")) return;
-        await supabase.from('elecciones_cargos').delete().eq('id', id);
+        await dbDelete('elecciones_cargos', { id });
         fetchCargos();
     };
 
@@ -242,12 +270,12 @@ export default function AdminPage() {
         else if (currentStatus === "active") nextStatus = "closed";
         else if (currentStatus === "closed") nextStatus = "active";
 
-        await supabase.from('elecciones_cargos').update({ estado: nextStatus }).eq('id', id);
+        await dbUpdate('elecciones_cargos', { estado: nextStatus }, { id });
         fetchCargos();
     };
 
     const toggleResultsVisibility = async (id: string, currentVisibility: boolean) => {
-        await supabase.from('elecciones_cargos').update({ resultados_visibles: !currentVisibility }).eq('id', id);
+        await dbUpdate('elecciones_cargos', { resultados_visibles: !currentVisibility }, { id });
         fetchCargos();
     };
 
@@ -256,11 +284,11 @@ export default function AdminPage() {
         try {
             let error;
             if (editingCandidato) {
-                const { error: dbError } = await supabase.from('elecciones_candidatos').update(candidatoForm).eq('id', editingCandidato.id);
-                error = dbError;
+                const result = await dbUpdate('elecciones_candidatos', candidatoForm, { id: editingCandidato.id });
+                if (!result.success) error = { message: result.error };
             } else {
-                const { error: dbError } = await supabase.from('elecciones_candidatos').insert([candidatoForm]);
-                error = dbError;
+                const result = await dbInsert('elecciones_candidatos', candidatoForm);
+                if (!result.success) error = { message: result.error };
             }
             if (error) throw error;
 
@@ -276,15 +304,27 @@ export default function AdminPage() {
 
     const handleDeleteCandidato = async (id: string) => {
         if (!confirm("¿Eliminar este candidato?")) return;
-        await supabase.from('elecciones_candidatos').delete().eq('id', id);
+        await dbDelete('elecciones_candidatos', { id });
         fetchCargos();
     };
 
     const handleVoterSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
-            const { error } = await supabase.from('elecciones_padron').insert([voterForm]);
-            if (error) throw error;
+            // Check for duplicates first
+            const { data: existing } = await supabase
+                .from('elecciones_padron')
+                .select('id')
+                .eq('email', voterForm.email)
+                .single();
+
+            if (existing) {
+                alert("Error: Este correo electrónico ya está registrado en el padrón. No se permiten correos duplicados.");
+                return;
+            }
+
+            const result = await dbInsert('elecciones_padron', voterForm);
+            if (!result.success) throw new Error(result.error);
             alert("Votante agregado al padrón");
             setIsVoterModalOpen(false);
             setVoterForm({ cedula: "", fecha_nacimiento: "", email: "", nombre: "" });
@@ -296,7 +336,7 @@ export default function AdminPage() {
 
     const handleDeleteVoter = async (id: string) => {
         if (!confirm("¿Eliminar este votante del padrón?")) return;
-        await supabase.from('elecciones_padron').delete().eq('id', id);
+        await dbDelete('elecciones_padron', { id });
         fetchPadron();
     };
 
@@ -402,6 +442,15 @@ export default function AdminPage() {
         }
     };
 
+    // Helper for filename sanitization
+    const sanitizeFileName = (name: string) => {
+        return name
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .replace(/\s+/g, "_")
+            .replace(/[^a-zA-Z0-9._-]/g, "");
+    };
+
     const handleActaSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
@@ -416,7 +465,8 @@ export default function AdminPage() {
 
             // 1. Upload file only if selected
             if (selectedFile) {
-                const fileName = `acta_${Date.now()}_${selectedFile.name}`;
+                const safeName = sanitizeFileName(selectedFile.name);
+                const fileName = `acta_${Date.now()}_${safeName}`;
                 const { error: uploadError } = await supabase.storage
                     .from('documents')
                     .upload(fileName, selectedFile);
@@ -439,25 +489,20 @@ export default function AdminPage() {
 
             // 2. Save or Update in DB
             if (editingActa) {
-                const { error: dbError } = await supabase
-                    .from('actas_electorales')
-                    .update({
-                        ...actaForm,
-                        archivo_url: finalUrl
-                    })
-                    .eq('id', editingActa.id);
+                const dbResult = await dbUpdate('actas_electorales', {
+                    ...actaForm,
+                    archivo_url: finalUrl
+                }, { id: editingActa.id });
 
-                if (dbError) throw new Error("Error de Base de Datos: " + dbError.message);
+                if (!dbResult.success) throw new Error("Error de Base de Datos: " + dbResult.error);
                 alert("Acta actualizada correctamente");
             } else {
-                const { error: dbError } = await supabase
-                    .from('actas_electorales')
-                    .insert([{
-                        ...actaForm,
-                        archivo_url: finalUrl
-                    }]);
+                const dbResult = await dbInsert('actas_electorales', {
+                    ...actaForm,
+                    archivo_url: finalUrl
+                });
 
-                if (dbError) throw new Error("Error de Base de Datos: " + dbError.message);
+                if (!dbResult.success) throw new Error("Error de Base de Datos: " + dbResult.error);
                 alert("Acta subida correctamente");
             }
 
@@ -489,7 +534,7 @@ export default function AdminPage() {
         try {
             const fileName = url.split('/').pop();
             await supabase.storage.from('documents').remove([fileName!]);
-            await supabase.from('actas_electorales').delete().eq('id', id);
+            await dbDelete('actas_electorales', { id });
             fetchActas();
         } catch (error: any) {
             alert("Error: " + error.message);
@@ -588,7 +633,8 @@ export default function AdminPage() {
                 }
 
                 // Upload file to storage
-                const storageFileName = `acta_${Date.now()}_${Math.random().toString(36).substring(7)}_${fileName}`;
+                const safeName = sanitizeFileName(fileName);
+                const storageFileName = `acta_${Date.now()}_${Math.random().toString(36).substring(7)}_${safeName}`;
                 const { error: uploadError } = await supabase.storage
                     .from('documents')
                     .upload(storageFileName, file);
@@ -603,23 +649,21 @@ export default function AdminPage() {
                     .getPublicUrl(storageFileName);
 
                 // Insert into database
-                const { error: dbError } = await supabase
-                    .from('actas_electorales')
-                    .insert([{
-                        seccional: detectedSeccional,
-                        ciudad,
-                        recinto,
-                        colegio,
-                        archivo_url: urlData.publicUrl,
-                        votos_fp: 0,
-                        votos_prm: 0,
-                        votos_pld: 0,
-                        votos_otros: 0,
-                        votos_nulos: 0
-                    }]);
+                const dbResult = await dbInsert('actas_electorales', {
+                    seccional: detectedSeccional,
+                    ciudad,
+                    recinto,
+                    colegio,
+                    archivo_url: urlData.publicUrl,
+                    votos_fp: 0,
+                    votos_prm: 0,
+                    votos_pld: 0,
+                    votos_otros: 0,
+                    votos_nulos: 0
+                });
 
-                if (dbError) {
-                    throw new Error(`Error DB: ${dbError.message}`);
+                if (!dbResult.success) {
+                    throw new Error(`Error DB: ${dbResult.error}`);
                 }
 
                 successful++;
@@ -667,16 +711,13 @@ export default function AdminPage() {
         try {
             if (editingStatute) {
                 // Update existing
-                await supabase
-                    .from('estatutos')
-                    .update(statuteForm)
-                    .eq('id', editingStatute.id);
+                const result = await dbUpdate('estatutos', statuteForm, { id: editingStatute.id });
+                if (!result.success) throw new Error(result.error);
                 alert("Artículo actualizado");
             } else {
                 // Insert new
-                await supabase
-                    .from('estatutos')
-                    .insert([statuteForm]);
+                const result = await dbInsert('estatutos', statuteForm);
+                if (!result.success) throw new Error(result.error);
                 alert("Artículo agregado");
             }
             setIsStatuteModalOpen(false);
@@ -690,7 +731,7 @@ export default function AdminPage() {
 
     const handleDeleteStatute = async (id: string) => {
         if (!confirm("¿Eliminar este artículo?")) return;
-        await supabase.from('estatutos').delete().eq('id', id);
+        await dbDelete('estatutos', { id });
         fetchStatutes();
     };
 
@@ -719,7 +760,8 @@ export default function AdminPage() {
             if (uploadMode === "file" && selectedFile) {
                 // 1. Upload file to storage
                 const fileExt = selectedFile.name.split('.').pop() || "unknown";
-                const fileName = `${Date.now()}_${selectedFile.name}`;
+                const safeName = sanitizeFileName(selectedFile.name);
+                const fileName = `${Date.now()}_${safeName}`;
                 const { data: uploadData, error: uploadError } = await supabase.storage
                     .from('documents')
                     .upload(fileName, selectedFile);
@@ -744,17 +786,15 @@ export default function AdminPage() {
             }
 
             // 3. Save metadata to database
-            const { error: dbError } = await supabase
-                .from('documentos')
-                .insert([{
-                    nombre: finalName,
-                    categoria: categoria,
-                    archivo_url: finalUrl,
-                    tamanio: finalSize,
-                    extension: finalExt
-                }]);
+            const dbResult = await dbInsert('documentos', {
+                nombre: finalName,
+                categoria: categoria,
+                archivo_url: finalUrl,
+                tamanio: finalSize,
+                extension: finalExt
+            });
 
-            if (dbError) throw dbError;
+            if (!dbResult.success) throw new Error(dbResult.error);
 
             alert(uploadMode === "file" ? "Documento subido correctamente" : "Enlace guardado correctamente");
             setIsUploadModalOpen(false);
@@ -780,7 +820,7 @@ export default function AdminPage() {
             await supabase.storage.from('documents').remove([fileName!]);
 
             // Delete from database
-            await supabase.from('documentos').delete().eq('id', id);
+            await dbDelete('documentos', { id });
 
             fetchDocuments();
         } catch (error: any) {
@@ -1186,7 +1226,7 @@ export default function AdminPage() {
                             </button>
                             <button
                                 onClick={() => {
-                                    setCargoForm({ titulo: "" });
+                                    setCargoForm({ titulo: "", seccional: "Europa" });
                                     setEditingCargo(null);
                                     setIsCargoModalOpen(true);
                                 }}
@@ -1234,6 +1274,24 @@ export default function AdminPage() {
                                                     </button>
                                                     <button onClick={() => toggleResultsVisibility(cargo.id, cargo.resultados_visibles)} className={`p-2 transition-colors ${cargo.resultados_visibles ? 'text-green-600' : 'text-gray-400 hover:text-green-600'}`} title="Visibilidad Resultados">
                                                         {cargo.resultados_visibles ? <Eye size={18} /> : <EyeOff size={18} />}
+                                                    </button>
+                                                    <button
+                                                        onClick={() => {
+                                                            setEditingCargo(cargo);
+                                                            setCargoForm({ titulo: cargo.titulo, seccional: cargo.seccional || "Europa" });
+                                                            setIsCargoModalOpen(true);
+                                                        }}
+                                                        className="p-2 text-gray-400 hover:text-blue-600 transition-colors"
+                                                        title="Editar Cargo"
+                                                    >
+                                                        <Settings size={18} />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => setFilterSeccional(cargo.seccional || "Todas")}
+                                                        className={`p-2 transition-colors ${filterSeccional === (cargo.seccional || "Todas") ? 'text-green-600 bg-green-100 rounded-lg' : 'text-gray-400 hover:text-green-600'}`}
+                                                        title={`Ver Padrón de ${cargo.seccional || "Europa"}`}
+                                                    >
+                                                        <Users size={18} />
                                                     </button>
                                                     <button onClick={() => handleDeleteCargo(cargo.id)} className="p-2 text-gray-400 hover:text-red-600 transition-colors">
                                                         <Trash2 size={18} />
@@ -1287,14 +1345,32 @@ export default function AdminPage() {
                             <h3 className="font-bold text-gray-700 uppercase text-xs tracking-widest px-2">Padrón de Votantes ({padron.length})</h3>
                             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden h-[600px] flex flex-col">
                                 <div className="p-4 border-b border-gray-50 flex gap-2">
-                                    <input type="text" placeholder="Buscar por cédula..." className="flex-1 text-xs p-2 border border-gray-100 rounded-lg outline-none focus:ring-1 focus:ring-[#00843D]" />
+                                    <div className="flex-1 flex gap-2">
+                                        <select
+                                            value={filterSeccional}
+                                            onChange={(e) => setFilterSeccional(e.target.value)}
+                                            className="text-xs p-2 border border-gray-200 rounded-lg outline-none focus:ring-1 focus:ring-[#00843D] bg-gray-50 font-bold text-gray-700 w-1/3"
+                                        >
+                                            <option value="Todas">Todas las Seccionales</option>
+                                            <option value="Madrid">Madrid</option>
+                                            <option value="Barcelona">Barcelona</option>
+                                            <option value="Milano">Milano</option>
+                                            <option value="Zurich">Zurich</option>
+                                            <option value="Holanda">Holanda</option>
+                                            <option value="Valencia">Valencia</option>
+                                            <option value="Sevilla">Sevilla</option>
+                                            <option value="Bilbao">Bilbao</option>
+                                            <option value="Zaragoza">Zaragoza</option>
+                                        </select>
+                                        <input type="text" placeholder="Buscar por cédula..." className="flex-1 text-xs p-2 border border-gray-200 rounded-lg outline-none focus:ring-1 focus:ring-[#00843D]" />
+                                    </div>
                                     <button className="bg-gray-50 p-2 rounded-lg text-gray-400"><Search size={16} /></button>
                                 </div>
                                 <div className="flex-1 overflow-y-auto">
-                                    {padron.length === 0 ? (
+                                    {padron.filter(v => filterSeccional === "Todas" || v.seccional === filterSeccional).length === 0 ? (
                                         <div className="h-full flex flex-col items-center justify-center text-gray-400">
                                             <UserCheck size={32} className="opacity-10 mb-2" />
-                                            <p className="text-sm">Padrón vacío</p>
+                                            <p className="text-sm">No hay votantes en esta seccional</p>
                                         </div>
                                     ) : (
                                         <table className="w-full text-left">
@@ -1302,21 +1378,25 @@ export default function AdminPage() {
                                                 <tr>
                                                     <th className="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase">Cédula</th>
                                                     <th className="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase">Nombre</th>
+                                                    <th className="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase">Seccional</th>
                                                     <th className="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase text-right">Acción</th>
                                                 </tr>
                                             </thead>
                                             <tbody className="divide-y divide-gray-50">
-                                                {padron.map(v => (
-                                                    <tr key={v.id} className="hover:bg-gray-50 text-xs">
-                                                        <td className="px-4 py-3 font-mono font-bold text-gray-600">{v.cedula}</td>
-                                                        <td className="px-4 py-3 text-gray-500 font-medium truncate max-w-[120px]">{v.nombre}</td>
-                                                        <td className="px-4 py-3 text-right">
-                                                            <button onClick={() => handleDeleteVoter(v.id)} className="p-1 text-gray-300 hover:text-red-500">
-                                                                <Trash2 size={14} />
-                                                            </button>
-                                                        </td>
-                                                    </tr>
-                                                ))}
+                                                {padron
+                                                    .filter(v => filterSeccional === "Todas" || v.seccional === filterSeccional)
+                                                    .map(v => (
+                                                        <tr key={v.id} className="hover:bg-gray-50 text-xs">
+                                                            <td className="px-4 py-3 font-mono font-bold text-gray-600">{v.cedula}</td>
+                                                            <td className="px-4 py-3 text-gray-500 font-medium truncate max-w-[120px]">{v.nombre}</td>
+                                                            <td className="px-4 py-3 text-gray-400">{v.seccional}</td>
+                                                            <td className="px-4 py-3 text-right">
+                                                                <button onClick={() => handleDeleteVoter(v.id)} className="p-1 text-gray-300 hover:text-red-500">
+                                                                    <Trash2 size={14} />
+                                                                </button>
+                                                            </td>
+                                                        </tr>
+                                                    ))}
                                             </tbody>
                                         </table>
                                     )}
@@ -1898,6 +1978,27 @@ export default function AdminPage() {
                                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#00843D] outline-none"
                                     placeholder="Ej: Presidente Seccional"
                                 />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Circunscripción / Seccional</label>
+                                <select
+                                    value={cargoForm.seccional}
+                                    onChange={(e) => setCargoForm({ ...cargoForm, seccional: e.target.value })}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#00843D] outline-none bg-white"
+                                >
+                                    <option value="Europa">Toda Europa (General)</option>
+                                    <optgroup label="Seccionales Específicas">
+                                        <option value="Madrid">Madrid</option>
+                                        <option value="Barcelona">Barcelona</option>
+                                        <option value="Milano">Milano</option>
+                                        <option value="Zurich">Zurich</option>
+                                        <option value="Holanda">Holanda</option>
+                                        <option value="Valencia">Valencia</option>
+                                        <option value="Sevilla">Sevilla</option>
+                                        <option value="Bilbao">Bilbao</option>
+                                        <option value="Zaragoza">Zaragoza</option>
+                                    </optgroup>
+                                </select>
                             </div>
                             <button type="submit" className="w-full bg-[#00843D] text-white py-3 rounded-xl font-bold hover:bg-[#137228] transition-colors">
                                 {editingCargo ? "Guardar Cambios" : "Crear Cargo"}

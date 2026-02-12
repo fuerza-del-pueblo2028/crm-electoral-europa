@@ -40,14 +40,39 @@ export default function ComunicacionesPage() {
         setStatus({ type: null, msg: "" });
 
         try {
-            // 1. Obtener los contactos desde el cliente
-            const { data: contactos, error: dbError } = await supabase
-                .from('comunicaciones_contactos')
-                .select('email, nombre')
-                .eq('activo', true);
+            // 1. Obtener TODOS los contactos desde el cliente (paginación para superar límite de 1000)
+            let allContacts: any[] = [];
+            let page = 0;
+            const pageSize = 1000;
+            let hasMore = true;
 
-            if (dbError) throw dbError;
-            if (!contactos || contactos.length === 0) throw new Error("No hay destinatarios.");
+            const updateStatusMsg = (count: number) => {
+                setStatus({ type: null, msg: `Obteniendo contactos (${count})...` });
+            };
+
+            while (hasMore) {
+                updateStatusMsg(allContacts.length);
+                const { data, error } = await supabase
+                    .from('comunicaciones_contactos')
+                    .select('email, nombre')
+                    .eq('activo', true)
+                    .range(page * pageSize, (page + 1) * pageSize - 1);
+
+                if (error) throw error;
+
+                if (data.length > 0) {
+                    allContacts = [...allContacts, ...data];
+                    page++;
+                    // Si devolvió menos del tamaño de página, es el final
+                    if (data.length < pageSize) hasMore = false;
+                } else {
+                    hasMore = false;
+                }
+            }
+
+            if (allContacts.length === 0) throw new Error("No hay destinatarios.");
+
+            const contactos = allContacts;
 
             // 2. Dividir en lotes de 50 (límite batch de Resend seguro = 100, usamos 50 por precaución)
             const batchSize = 50;

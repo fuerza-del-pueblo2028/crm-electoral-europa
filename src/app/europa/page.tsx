@@ -2,7 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
+import { dbInsert, dbUpdate, dbDelete } from '@/lib/dbWrite';
 import { Globe, MapPin, Users, Building2, Search, Filter, Edit2, X, Save } from 'lucide-react';
+import { PresidenteModal } from '@/components/PresidenteModal';
+import { RecintoModal } from '@/components/RecintoModal';
 
 type Recinto = {
     id: string;
@@ -20,13 +23,18 @@ type Recinto = {
 
 type PresidenteDM = {
     id: string;
-    nombre_completo: string;
+    nombre_completo: string; // Maintain for backward compatibility with view
+    nombre?: string;
+    apellidos?: string;
     cedula: string | null;
     celular: string | null;
     pais: string;
     condado_provincia: string | null;
     total_afiliados: number;
     status: string | null;
+    email?: string;
+    fechaNacimiento?: string;
+    seccional?: string;
 };
 
 export default function EuropaPage() {
@@ -38,7 +46,9 @@ export default function EuropaPage() {
     const [activeTab, setActiveTab] = useState<'recintos' | 'presidentes'>('recintos');
     const [isAdmin, setIsAdmin] = useState(false);
     const [editingRecinto, setEditingRecinto] = useState<Recinto | null>(null);
-    const [editForm, setEditForm] = useState<Partial<Recinto>>({});
+    const [editingPresidente, setEditingPresidente] = useState<PresidenteDM | null>(null);
+    // const [editForm, setEditForm] = useState<Partial<Recinto>>({}); // Removed for modal state
+    // const [presidentForm, setPresidentForm] = useState<Partial<PresidenteDM>>({}); // Removed in favor of modal state
 
     const seccionales = ['Todos', 'Madrid', 'Barcelona', 'Milano', 'Holanda', 'Valencia', 'Zurich'];
 
@@ -48,9 +58,14 @@ export default function EuropaPage() {
             window.location.href = "/login";
             return;
         }
-        loadData();
+
         const role = localStorage.getItem('user_role');
-        setIsAdmin(role === 'administrador');
+        console.log('Current user role:', role);
+        const normalizedRole = role?.toLowerCase().trim();
+        console.log('Is Admin check:', normalizedRole === 'administrador');
+        setIsAdmin(normalizedRole === 'administrador');
+
+        loadData();
     }, [selectedSeccional]);
 
     async function loadData() {
@@ -93,43 +108,38 @@ export default function EuropaPage() {
         }
     }
 
-    async function handleSaveRecinto() {
+    async function handleSaveRecinto(formData: any) {
         if (!editingRecinto) return;
 
         try {
             let error;
             if (editingRecinto.id === 'new') {
                 // Crear nuevo
-                const { data, error: insertError } = await supabase
-                    .from('europa_recintos_electorales')
-                    .insert([{
-                        ...editForm,
-                        seccional: editForm.seccional,
-                        numero_recinto: editForm.numero_recinto
-                    }])
-                    .select();
+                const result = await dbInsert('europa_recintos_electorales', {
+                    ...formData,
+                    seccional: formData.seccional,
+                    numero_recinto: formData.numero_recinto
+                });
 
-                if (!insertError && (!data || data.length === 0)) {
+                if (!result.success) {
+                    error = result.error;
+                } else if (!result.data || result.data.length === 0) {
                     throw new Error('No se pudo crear el registro. Verifique sus permisos.');
                 }
-                error = insertError;
             } else {
                 // Actualizar existente
-                const { data, error: updateError } = await supabase
-                    .from('europa_recintos_electorales')
-                    .update(editForm)
-                    .eq('id', editingRecinto.id)
-                    .select();
+                const result = await dbUpdate('europa_recintos_electorales', formData, { id: editingRecinto.id });
 
-                if (!updateError && (!data || data.length === 0)) {
+                if (!result.success) {
+                    error = result.error;
+                } else if (!result.data || result.data.length === 0) {
                     throw new Error('No se pudo actualizar. El registro no existe o no tiene permisos.');
                 }
-                error = updateError;
             }
 
             if (error) {
                 console.error('Error guardando recinto:', error);
-                alert('Error al guardar: ' + error.message);
+                alert('Error al guardar: ' + error);
             } else {
                 alert('✅ Guardado exitosamente');
                 setEditingRecinto(null);
@@ -141,16 +151,92 @@ export default function EuropaPage() {
         }
     }
 
+    async function handleSavePresidente(formData: any) {
+        if (!formData.nombre || !formData.apellidos || !formData.cedula || !formData.email || !formData.fechaNacimiento || !formData.seccional || !formData.celular) {
+            alert('Por favor complete todos los campos obligatorios (*)');
+            throw new Error('Campos obligatorios faltantes');
+        }
+
+        try {
+            // 1. Check for duplicates in 'afiliados' (Email/Phone)
+            const { data: existingAffiliate } = await supabase
+                .from('afiliados')
+                .select('id')
+                .or(`email.eq.${formData.email},cedula.eq.${formData.cedula}`)
+                .maybeSingle();
+
+            // If editing, exclude self from duplicate check? 
+            // The logic here is a bit simplistic for updates. For now, strict check keeps data clean.
+            if (existingAffiliate && editingPresidente?.id === 'new') {
+                alert('Ya existe un afiliado registrado con ese Email o Cédula.');
+                throw new Error('Duplicado detectado');
+            }
+
+            const nombreCompleto = `${formData.nombre} ${formData.apellidos}`;
+
+            // 2. Insert into 'afiliados'
+            // We only insert if it's new. Updates to 'PresidenteDM' don't automatically update 'afiliados' 
+            // fully in this legacy View logic, but let's try to keep them in sync if possible.
+            if (editingPresidente?.id === 'new') {
+                const affiliateResult = await dbInsert('afiliados', {
+                    nombre: formData.nombre,
+                    apellidos: formData.apellidos,
+                    cedula: formData.cedula,
+                    email: formData.email,
+                    fecha_nacimiento: formData.fechaNacimiento,
+                    seccional: formData.seccional,
+                    telefono: formData.celular,
+                    role: 'Presidente DM',
+                    validado: true,
+                    cargo_organizacional: 'Presidente DM'
+                });
+                if (!affiliateResult.success) throw new Error(affiliateResult.error);
+            }
+
+            // 3. Insert/Update 'europa_presidentes_dm'
+            if (editingPresidente?.id === 'new') {
+                const dmResult = await dbInsert('europa_presidentes_dm', {
+                    nombre_completo: nombreCompleto,
+                    cedula: formData.cedula,
+                    celular: formData.celular,
+                    pais: formData.pais || 'España',
+                    condado_provincia: formData.condado_provincia,
+                    status: formData.status || 'Incompleto'
+                });
+
+                if (!dmResult.success) throw new Error(dmResult.error);
+            } else if (editingPresidente?.id) {
+                const updateResult = await dbUpdate('europa_presidentes_dm', {
+                    nombre_completo: nombreCompleto,
+                    cedula: formData.cedula,
+                    celular: formData.celular,
+                    pais: formData.pais || 'España',
+                    condado_provincia: formData.condado_provincia,
+                    status: formData.status
+                }, { id: editingPresidente.id });
+
+                if (!updateResult.success) throw new Error(updateResult.error);
+            }
+
+            setEditingPresidente(null);
+            loadData();
+            alert('Presidente DM guardado exitosamente.');
+
+        } catch (error: any) {
+            console.error('Error saving presidente:', error);
+            alert('Error al guardar: ' + error.message);
+            throw error; // Re-throw to stop modal spinner
+        }
+    };
+
     function openEditModal(recinto: Recinto) {
         setEditingRecinto(recinto);
-        setEditForm({
-            nombre_recinto: recinto.nombre_recinto,
-            zona_ciudad: recinto.zona_ciudad,
-            direccion: recinto.direccion,
-            total_electores: recinto.total_electores,
-            total_colegios: recinto.total_colegios,
-            colegios_numeros: recinto.colegios_numeros || ''
-        });
+        // Form state managed by modal
+    }
+
+    function openEditPresidenteModal(presidente: PresidenteDM) {
+        setEditingPresidente(presidente);
+        // Form state is now handled by the modal
     }
 
     const filteredRecintos = recintos.filter(r =>
@@ -188,7 +274,7 @@ export default function EuropaPage() {
             {/* Header */}
             <div className="mb-8">
                 <div className="flex items-center gap-3 mb-2">
-                    <Globe className="h-8 w-8 text-green-600" />
+                    <img src="/logo-fp.png" alt="FP" className="h-10 w-10 object-contain rounded-md p-1" style={{ backgroundColor: '#e5e0e0' }} />
                     <h1 className="text-3xl font-bold text-gray-900">Europa Electoral</h1>
                 </div>
                 <p className="text-gray-600">
@@ -292,7 +378,7 @@ export default function EuropaPage() {
                                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                                 }`}
                         >
-                            Presidentes DM Italia ({filteredPresidentes.length})
+                            Presidentes DM Europa ({filteredPresidentes.length})
                         </button>
                     </nav>
                 </div>
@@ -306,7 +392,6 @@ export default function EuropaPage() {
                             <button
                                 onClick={() => {
                                     setEditingRecinto(null);
-                                    setEditForm({});
                                     setEditingRecinto({ id: 'new' } as Recinto); // Use 'new' as flag
                                 }}
                                 className="px-3 py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 flex items-center gap-2"
@@ -397,13 +482,10 @@ export default function EuropaPage() {
                                                         <button
                                                             onClick={async () => {
                                                                 if (confirm('¿Estás seguro de eliminar este recinto? Esta acción no se puede deshacer.')) {
-                                                                    const { error } = await supabase
-                                                                        .from('europa_recintos_electorales')
-                                                                        .delete()
-                                                                        .eq('id', recinto.id);
+                                                                    const result = await dbDelete('europa_recintos_electorales', { id: recinto.id });
 
-                                                                    if (error) {
-                                                                        alert('Error al eliminar: ' + error.message);
+                                                                    if (!result.success) {
+                                                                        alert('Error al eliminar: ' + result.error);
                                                                     } else {
                                                                         loadData();
                                                                     }
@@ -428,6 +510,20 @@ export default function EuropaPage() {
                 <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
                     {filteredPresidentes.length === 0 ? (
                         <div className="text-center py-12">
+                            <div className="flex justify-end px-4 mb-4">
+                                {isAdmin && (
+                                    <button
+                                        onClick={() => {
+                                            setEditingPresidente(null);
+                                            setEditingPresidente({ id: 'new' } as PresidenteDM);
+                                        }}
+                                        className="px-3 py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 flex items-center gap-2"
+                                    >
+                                        <Users className="h-4 w-4" />
+                                        Nueva DM
+                                    </button>
+                                )}
+                            </div>
                             <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                             <p className="text-gray-600">No se encontraron presidentes DM</p>
                             <p className="text-sm text-gray-500 mt-2">
@@ -435,248 +531,132 @@ export default function EuropaPage() {
                             </p>
                         </div>
                     ) : (
-                        <div className="overflow-x-auto">
-                            <table className="min-w-full divide-y divide-gray-200">
-                                <thead className="bg-gray-50">
-                                    <tr>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Nombre
-                                        </th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Provincia
-                                        </th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Cédula
-                                        </th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Celular
-                                        </th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Afiliados
-                                        </th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Status
-                                        </th>
-                                        {isAdmin && (
-                                            <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                Acciones
+                        <div>
+                            <div className="p-4 border-b border-gray-200 flex justify-end">
+                                {isAdmin && (
+                                    <button
+                                        onClick={() => {
+                                            setEditingPresidente(null);
+                                            setEditingPresidente({ id: 'new' } as PresidenteDM);
+                                        }}
+                                        className="px-3 py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 flex items-center gap-2"
+                                    >
+                                        <Users className="h-4 w-4" />
+                                        Nueva DM
+                                    </button>
+                                )}
+                            </div>
+                            <div className="overflow-x-auto">
+                                <table className="min-w-full divide-y divide-gray-200">
+                                    <thead className="bg-gray-50">
+                                        <tr>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                Nombre
                                             </th>
-                                        )}
-                                    </tr>
-                                </thead>
-                                <tbody className="bg-white divide-y divide-gray-200">
-                                    {filteredPresidentes.map((presidente) => (
-                                        <tr key={presidente.id} className="hover:bg-gray-50">
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                                {presidente.nombre_completo}
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                                {presidente.condado_provincia || '-'}
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                                {presidente.cedula || '-'}
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                                {presidente.celular || '-'}
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                                {presidente.total_afiliados}
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                {presidente.status && (
-                                                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${presidente.status === 'Completo' ? 'bg-green-100 text-green-800' :
-                                                        presidente.status === 'Suficiente' ? 'bg-yellow-100 text-yellow-800' :
-                                                            'bg-red-100 text-red-800'
-                                                        }`}>
-                                                        {presidente.status}
-                                                    </span>
-                                                )}
-                                            </td>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                Provincia
+                                            </th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                Cédula
+                                            </th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                Celular
+                                            </th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                Afiliados
+                                            </th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                Status
+                                            </th>
                                             {isAdmin && (
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-right">
-                                                    <button
-                                                        onClick={async () => {
-                                                            if (confirm('¿Estás seguro de eliminar este registro?')) {
-                                                                const { error } = await supabase
-                                                                    .from('europa_presidentes_dm')
-                                                                    .delete()
-                                                                    .eq('id', presidente.id);
-
-                                                                if (error) {
-                                                                    alert('Error al eliminar: ' + error.message);
-                                                                } else {
-                                                                    loadData();
-                                                                }
-                                                            }
-                                                        }}
-                                                        className="text-white bg-red-600 hover:bg-red-700 p-1.5 rounded transition-colors inline-flex items-center"
-                                                        title="Eliminar"
-                                                    >
-                                                        <X className="h-3 w-3" />
-                                                    </button>
-                                                </td>
+                                                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                    Acciones
+                                                </th>
                                             )}
                                         </tr>
-                                    ))}
-                                </tbody>
-                            </table>
+                                    </thead>
+                                    <tbody className="bg-white divide-y divide-gray-200">
+                                        {filteredPresidentes.map((presidente) => (
+                                            <tr key={presidente.id} className="hover:bg-gray-50">
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                                    {presidente.nombre_completo}
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                    {presidente.condado_provincia || '-'}
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                    {presidente.cedula || '-'}
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                    {presidente.celular || '-'}
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                                    {presidente.total_afiliados}
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                    {presidente.status && (
+                                                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${presidente.status === 'Completo' ? 'bg-green-100 text-green-800' :
+                                                            presidente.status === 'Suficiente' ? 'bg-yellow-100 text-yellow-800' :
+                                                                'bg-red-100 text-red-800'
+                                                            }`}>
+                                                            {presidente.status}
+                                                        </span>
+                                                    )}
+                                                </td>
+                                                {isAdmin && (
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-right">
+                                                        <button
+                                                            onClick={() => openEditPresidenteModal(presidente)}
+                                                            className="text-white bg-green-600 hover:bg-green-700 p-1.5 rounded transition-colors inline-flex items-center mr-2"
+                                                            title="Editar"
+                                                        >
+                                                            <Edit2 className="h-3 w-3" />
+                                                        </button>
+                                                        <button
+                                                            onClick={async () => {
+                                                                if (confirm('¿Estás seguro de eliminar este registro?')) {
+                                                                    const result = await dbDelete('europa_presidentes_dm', { id: presidente.id });
+
+                                                                    if (!result.success) {
+                                                                        alert('Error al eliminar: ' + result.error);
+                                                                    } else {
+                                                                        loadData();
+                                                                    }
+                                                                }
+                                                            }}
+                                                            className="text-white bg-red-600 hover:bg-red-700 p-1.5 rounded transition-colors inline-flex items-center"
+                                                            title="Eliminar"
+                                                        >
+                                                            <X className="h-3 w-3" />
+                                                        </button>
+                                                    </td>
+                                                )}
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                     )}
                 </div>
             )}
 
-            {/* Modal de Edicición/Creación (Solo Admin) */}
-            {editingRecinto && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-                    <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-                        <div className="p-6">
-                            <div className="flex items-center justify-between mb-6">
-                                <h2 className="text-2xl font-bold text-gray-900">
-                                    {editingRecinto.id === 'new' ? 'Nuevo Recinto' : 'Editar Recinto'}
-                                </h2>
-                                <button
-                                    onClick={() => setEditingRecinto(null)}
-                                    className="text-gray-400 hover:text-gray-600"
-                                >
-                                    <X className="h-6 w-6" />
-                                </button>
-                            </div>
+            {/* Modal de Edición/Creación Recintos (Solo Admin) */}
+            <RecintoModal
+                isOpen={!!editingRecinto}
+                onClose={() => setEditingRecinto(null)}
+                onSave={handleSaveRecinto}
+                initialData={editingRecinto}
+            />
 
-                            <div className="space-y-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Seccional *
-                                    </label>
-                                    {editingRecinto.id === 'new' ? (
-                                        <select
-                                            value={editForm.seccional || ''}
-                                            onChange={(e) => setEditForm({ ...editForm, seccional: e.target.value })}
-                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
-                                        >
-                                            <option value="">Seleccionar...</option>
-                                            {seccionales.filter(s => s !== 'Todos').map(s => (
-                                                <option key={s} value={s}>{s}</option>
-                                            ))}
-                                        </select>
-                                    ) : (
-                                        <input
-                                            type="text"
-                                            value={editingRecinto.seccional}
-                                            disabled
-                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50"
-                                        />
-                                    )}
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Número de Recinto *
-                                    </label>
-                                    <input
-                                        type="text"
-                                        value={editingRecinto.id === 'new' ? (editForm.numero_recinto || '') : editingRecinto.numero_recinto}
-                                        disabled={editingRecinto.id !== 'new'}
-                                        onChange={(e) => editingRecinto.id === 'new' && setEditForm({ ...editForm, numero_recinto: e.target.value })}
-                                        className={`w-full px-3 py-2 border border-gray-300 rounded-lg ${editingRecinto.id !== 'new' ? 'bg-gray-50' : 'focus:ring-2 focus:ring-green-500'}`}
-                                        placeholder="Ej: 00151"
-                                    />
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Nombre del Recinto *
-                                    </label>
-                                    <input
-                                        type="text"
-                                        value={editForm.nombre_recinto || ''}
-                                        onChange={(e) => setEditForm({ ...editForm, nombre_recinto: e.target.value })}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
-                                    />
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Zona/Ciudad *
-                                    </label>
-                                    <input
-                                        type="text"
-                                        value={editForm.zona_ciudad || ''}
-                                        onChange={(e) => setEditForm({ ...editForm, zona_ciudad: e.target.value })}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
-                                    />
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Dirección
-                                    </label>
-                                    <input
-                                        type="text"
-                                        value={editForm.direccion || ''}
-                                        onChange={(e) => setEditForm({ ...editForm, direccion: e.target.value })}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
-                                    />
-                                </div>
-
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                                            Total Electores *
-                                        </label>
-                                        <input
-                                            type="number"
-                                            value={editForm.total_electores || 0}
-                                            onChange={(e) => setEditForm({ ...editForm, total_electores: parseInt(e.target.value) || 0 })}
-                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
-                                        />
-                                    </div>
-
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                                            Total Colegios *
-                                        </label>
-                                        <input
-                                            type="number"
-                                            value={editForm.total_colegios || 0}
-                                            onChange={(e) => setEditForm({ ...editForm, total_colegios: parseInt(e.target.value) || 0 })}
-                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
-                                        />
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Números de Colegios
-                                    </label>
-                                    <input
-                                        type="text"
-                                        value={editForm.colegios_numeros || ''}
-                                        onChange={(e) => setEditForm({ ...editForm, colegios_numeros: e.target.value })}
-                                        placeholder="Ej: 001, 002, 003"
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="mt-6 flex gap-3 justify-end">
-                                <button
-                                    onClick={() => setEditingRecinto(null)}
-                                    className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
-                                >
-                                    Cancelar
-                                </button>
-                                <button
-                                    onClick={() => handleSaveRecinto()}
-                                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2"
-                                >
-                                    <Save className="h-4 w-4" />
-                                    Guardar
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
+            {/* Modal de Edición/Creación Presidentes (Solo Admin) */}
+            <PresidenteModal
+                isOpen={!!editingPresidente}
+                onClose={() => setEditingPresidente(null)}
+                onSave={handleSavePresidente}
+                initialData={editingPresidente}
+                seccionales={seccionales}
+            />
         </div>
     );
 }

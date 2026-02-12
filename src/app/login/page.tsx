@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Lock, ShieldCheck, Mail, UserPlus, ArrowLeft, CreditCard } from "lucide-react";
 import { supabase } from "@/lib/supabase";
+import { dbInsert } from "@/lib/dbWrite";
 import { cn } from "@/lib/utils";
 
 export default function LoginPage() {
@@ -140,19 +141,17 @@ export default function LoginPage() {
             // 4. Registrar en la tabla de usuarios
             // Si estaba en la estructura autorizada, usamos sus datos oficiales. 
             // Si no, usamos lo que puso en el formulario.
-            const { error: regError } = await supabase
-                .from('usuarios')
-                .insert([{
-                    cedula: regForm.cedula,
-                    nombre: authUser?.nombre || regForm.nombre,
-                    email: regForm.email,
-                    password: generatedPassword,
-                    rol: 'operador',
-                    activo: false,
-                    seccional: authUser?.seccional || 'Madrid'
-                }]);
+            const result = await dbInsert('usuarios', {
+                cedula: regForm.cedula,
+                nombre: authUser?.nombre || regForm.nombre,
+                email: regForm.email,
+                password: generatedPassword,
+                rol: 'operador',
+                activo: false,
+                seccional: authUser?.seccional || 'Madrid'
+            });
 
-            if (regError) throw regError;
+            if (!result.success) throw new Error(result.error);
 
             setSuccess("¡Registro exitoso! Tu clave son los últimos 6 dígitos de tu cédula.");
             setIsRegisterModalOpen(false);

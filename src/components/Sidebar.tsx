@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Users, BarChart2, Book, Settings, LogOut, Vote, BarChart3, FileText, X, Globe, Mail } from "lucide-react";
+import { Home, Users, BarChart2, Book, Settings, LogOut, Vote, BarChart3, FileText, X, Globe, Mail, MessageSquare } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSidebar } from "./ui/SidebarContext";
 
@@ -15,6 +15,7 @@ const menuItems = [
     { name: "Repositorio", icon: FileText, href: "/repositorio", access: "public" },
     { name: "Estatutos", icon: Book, href: "/estatutos", access: "public" },
     { name: "Votación Interna", icon: Vote, href: "/elecciones-internas", access: "public" },
+    { name: "Contacto", icon: MessageSquare, href: "/contacto", access: "public" },
     { name: "Resultados", icon: BarChart3, href: "/elecciones-internas/resultados", access: "staff" },
     { name: "Administración", icon: Settings, href: "/admin", access: "admin" },
     { name: "Comunicaciones", icon: Mail, href: "/admin/comunicaciones", access: "admin" },

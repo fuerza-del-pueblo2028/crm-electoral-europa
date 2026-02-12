@@ -18,20 +18,25 @@ const supabaseAdmin = createClient(
 export async function POST(request: Request) {
     try {
         const body = await request.json();
-        const { asunto, mensaje } = body;
+        const { asunto, mensaje, destinatarios } = body;
 
         if (!asunto || !mensaje) {
             return NextResponse.json({ error: 'Asunto y Mensaje son requeridos' }, { status: 400 });
         }
 
-        // 1. Obtener destinatarios (Solo activos)
-        // NOTA: En producción con miles de usuarios, esto debe paginarse.
-        const { data: contactos, error: dbError } = await supabaseAdmin
-            .from('comunicaciones_contactos')
-            .select('email, nombre')
-            .eq('activo', true);
+        let contactos = destinatarios;
 
-        if (dbError) throw dbError;
+        // Si no se reciben contactos (backward compatibility o uso directo API), buscar en DB
+        if (!contactos || !Array.isArray(contactos) || contactos.length === 0) {
+            console.log("[Broadcast] No se recibieron destinatarios, buscando en DB...");
+            const { data: dbContactos, error: dbError } = await supabaseAdmin
+                .from('comunicaciones_contactos')
+                .select('email, nombre')
+                .eq('activo', true);
+
+            if (dbError) throw dbError;
+            contactos = dbContactos;
+        }
 
         if (!contactos || contactos.length === 0) {
             return NextResponse.json({ message: 'No hay contactos activos para enviar.' });
@@ -40,15 +45,17 @@ export async function POST(request: Request) {
         console.log(`[Broadcast] Iniciando envío a ${contactos.length} contactos. Asunto: ${asunto}`);
 
         // 2. Enviar en Lotes (Batches) de Resend (Max 100 por batch)
-        // Documentación: https://resend.com/docs/api/emails/send-batch
-        const batchSize = 50; // Conservador
+        // El frontend YA envía en lotes de 50, pero por seguridad y si se usa directo la API,
+        // aseguramos que no exceda el límite de Resend.
+        const batchSize = 100;
         let sentCount = 0;
         let errorCount = 0;
+        const debugErrors = [];
 
         for (let i = 0; i < contactos.length; i += batchSize) {
             const chunk = contactos.slice(i, i + batchSize);
 
-            const emailBatch = chunk.map(contacto => ({
+            const emailBatch = chunk.map((contacto: any) => ({
                 from: 'Secretaría Asuntos Electorales <info@centinelaelectoralsaeeuropa.com>',
                 to: [contacto.email],
                 subject: asunto,
@@ -59,7 +66,7 @@ export async function POST(request: Request) {
                             <table cellpadding="0" cellspacing="0" border="0" width="100%">
                                 <tr>
                                     <td width="60" valign="middle">
-                                        <img src="https://centinelaelectoralsaeeuropa.com/logo-fp.png" alt="FP Logo" width="50" height="50" style="border-radius: 8px; background: white; padding: 4px;" />
+                                        <img src="https://centinelaelectoralsaeeuropa.com/logo-fp.png" alt="FP Logo" width="50" height="50" style="border-radius: 8px; background: #e5e0e0; padding: 4px;" />
                                     </td>
                                     <td valign="middle" style="padding-left: 15px;">
                                         <h1 style="color: white; margin: 0; font-size: 22px; font-weight: bold; letter-spacing: 0.5px;">Fuerza del Pueblo Europa</h1>
@@ -108,27 +115,36 @@ export async function POST(request: Request) {
 
             try {
                 // Enviar batch
-                const { error } = await resend.batch.send(emailBatch);
+                const { data, error } = await resend.batch.send(emailBatch);
+
                 if (error) {
-                    console.error("Error batch:", error);
+                    console.error("[Broadcast Error] Error batch:", error);
                     errorCount += chunk.length;
+                    debugErrors.push(error);
                 } else {
+                    // Resend devuelve data con un array de IDs
+                    console.log("[Broadcast Success] Batch enviado. Metadata:", JSON.stringify(data));
                     sentCount += chunk.length;
                 }
             } catch (err) {
-                console.error("Excepción en batch:", err);
+                console.error("[Broadcast Exception] Excepción en batch:", err);
                 errorCount += chunk.length;
+                debugErrors.push(err);
             }
         }
 
+        // Devolver success siempre que no sea un fallo catastrófico total
+        // Incluimos debug info para que el usuario pueda ver si algo falló silenciosamente
         return NextResponse.json({
-            success: true,
+            success: sentCount > 0,
             total: contactos.length,
             sent: sentCount,
-            errors: errorCount
+            errors: errorCount,
+            debugInfo: debugErrors.length > 0 ? debugErrors : undefined
         });
 
     } catch (error: any) {
+        console.error("[Broadcast Fatal Error]", error);
         return NextResponse.json({ error: error.message }, { status: 500 });
     }
 }
