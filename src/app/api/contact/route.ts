@@ -20,9 +20,9 @@ export async function POST(request: Request) {
         }
 
         // Enviar correo a la administración
-        // IMPORTANTE: Usamos 'info@' como remitente ya que sabemos que está verificado y funciona bien con Hostinger/Outlook
+        // IMPORTANTE: Usamos 'noreply@' como remitente para evitar bucles en Hostinger (info -> info a veces se bloquea)
         const { data, error } = await resend.emails.send({
-            from: 'Secretaría Asuntos Electorales <info@centinelaelectoralsaeeuropa.com>',
+            from: 'Secretaría Asuntos Electorales <noreply@centinelaelectoralsaeeuropa.com>',
             to: ['info@centinelaelectoralsaeeuropa.com'],
             bcc: ['ls311524@outlook.com'], // Copia oculta de prueba para el usuario
             replyTo: email,
