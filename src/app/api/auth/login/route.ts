@@ -40,7 +40,8 @@ export async function POST(request: Request) {
                 cedula: userData.cedula,
                 nombre: userData.nombre,
                 rol: userData.rol,
-                seccional: userData.seccional
+                seccional: userData.seccional,
+                activo: userData.activo // Include active status
             };
         }
 
@@ -67,7 +68,9 @@ export async function POST(request: Request) {
                         cedula: affiliateData.cedula,
                         nombre: `${affiliateData.nombre} ${affiliateData.apellidos}`,
                         rol: 'afiliado', // Rol por defecto
-                        seccional: affiliateData.seccional
+
+                        seccional: affiliateData.seccional,
+                        activo: true // Affiliates are active by default if they can login
                     };
                 }
             }

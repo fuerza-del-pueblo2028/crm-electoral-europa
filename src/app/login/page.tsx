@@ -61,6 +61,8 @@ export default function LoginPage() {
             localStorage.setItem("user_role", user.rol);
             localStorage.setItem("user_name", user.nombre);
             localStorage.setItem("user_cedula", user.cedula);
+            // Fix: Save active status as string "true"/"false"
+            localStorage.setItem("user_active", String(user.activo));
             if (user.seccional) {
                 localStorage.setItem("user_seccional", user.seccional);
             }

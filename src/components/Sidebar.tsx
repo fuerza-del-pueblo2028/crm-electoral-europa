@@ -50,6 +50,8 @@ export function Sidebar() {
 
             // Secciones restringidas: Requieren ser staff Y estar activo
             if (item.href === "/datos" || item.href === "/europa") {
+                // Admins always see everything, otherwise check active status
+                if (userRole === "administrador") return true;
                 return isStaff && isActiveUser;
             }
 
