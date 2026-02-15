@@ -19,18 +19,22 @@ export default function StatutesPage() {
     }, []);
 
     const fetchStatutes = async () => {
-        const { data } = await supabase
-            .from('estatutos')
-            .select('*')
-            .order('articulo', { ascending: true });
+        try {
+            const response = await fetch('/api/estatutos');
+            if (!response.ok) throw new Error('Error loading statutes');
+            const data = await response.json();
 
-        if (data) {
-            setStatutes(data);
-            if (!window.location.hash && data.length > 0) {
-                setSelectedId(data[0].id);
+            if (data && Array.isArray(data)) {
+                setStatutes(data);
+                if (!window.location.hash && data.length > 0) {
+                    setSelectedId(data[0].id);
+                }
             }
+        } catch (error) {
+            console.error("Error fetching statutes:", error);
+        } finally {
+            setLoading(false);
         }
-        setLoading(false);
     };
 
     const filteredStatutes = useMemo(() => {

@@ -31,8 +31,40 @@ interface WriteRequest {
     };
 }
 
+import { verifyToken } from '@/lib/token';
+import { cookies } from 'next/headers';
+
+// ... (imports remain)
+
 export async function POST(request: Request) {
     try {
+        // 1. Verificar Autenticación (JWT en Cookie)
+        const cookieStore = await cookies();
+        const token = cookieStore.get('auth_token')?.value;
+
+        if (!token) {
+            return NextResponse.json({ error: 'No autorizado: Falta token de sesión' }, { status: 401 });
+        }
+
+        const user = await verifyToken(token) as any;
+
+        if (!user) {
+            return NextResponse.json({ error: 'No autorizado: Token inválido o expirado' }, { status: 401 });
+        }
+
+        // 🛡️ SECURITY PATCH: Role-Based Access Control (RBAC)
+        // Only Admins and Operators are allowed to perform write operations.
+        const allowedRoles = ['administrador', 'admin', 'Admin', 'operador'];
+        const userRole = user.rol || ''; // Ensure string
+
+        if (!allowedRoles.includes(userRole)) {
+            console.warn(`⛔ [Security Block] Write attempt denied for user ${user.cedula} (Role: ${userRole})`);
+            return NextResponse.json(
+                { error: 'No tienes permisos para realizar cambios en el sistema.' },
+                { status: 403 }
+            );
+        }
+
         const body: WriteRequest = await request.json();
         const { table, operation, data, match, options } = body;
 

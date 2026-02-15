@@ -29,4 +29,7 @@ Cuando termines una mejora y quieras verla en internet, ejecuta esto en orden:
 3. `git push origin main`
 
 ### ¿Cómo verificar que se está subiendo?
-Puedes entrar a tu panel de **Vercel**. Verás una barra de progreso que dice **"Building..."** (Construyendo). Cuando pase a **"Ready"**, tus cambios ya estarán vivos en la URL oficial.
+Puedes ver el progreso en tiempo real aquí:
+👉 **[Panel de Despliegues en Vercel](https://vercel.com/luis-projects-cbd7a86c/~/deployments)**
+
+Ahí verás una barra de progreso que dice **"Building..."** (Construyendo). Cuando pase a **"Ready"**, tus cambios ya estarán vivos en la URL oficial.

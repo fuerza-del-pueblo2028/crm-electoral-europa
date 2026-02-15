@@ -26,6 +26,7 @@ export async function dbWrite(params: DbWriteParams): Promise<DbWriteResult> {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(params),
+            credentials: 'include', // Important: Send HTTP-Only Cookie
         });
 
         const result = await response.json();

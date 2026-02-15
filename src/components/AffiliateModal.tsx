@@ -170,6 +170,12 @@ export function AffiliateModal({ isOpen, onClose, affiliate, onDelete }: Affilia
         const file = e.target.files?.[0];
         if (!file || !affiliate) return;
 
+        // 🛡️ Security Check
+        if (!canManage) {
+            alert('No tienes permisos para cambiar la foto.');
+            return;
+        }
+
         setUploadingPhoto(true);
         try {
             const fileExt = file.name.split('.').pop();
@@ -313,24 +319,28 @@ export function AffiliateModal({ isOpen, onClose, affiliate, onDelete }: Affilia
                         >
                             Información
                         </button>
-                        <button
-                            onClick={() => setActiveTab('contact')}
-                            className={`px-6 py-3 text-sm font-medium transition-all rounded-t-xl flex items-center gap-2 relative top-[1px] ${activeTab === 'contact'
-                                ? 'bg-white text-fp-green shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]'
-                                : 'text-white/70 hover:text-white hover:bg-white/10'
-                                }`}
-                        >
-                            <MessageSquare size={16} /> Contacto
-                        </button>
-                        <button
-                            onClick={() => setActiveTab('historial')}
-                            className={`px-6 py-3 text-sm font-medium transition-all rounded-t-xl flex items-center gap-2 relative top-[1px] ${activeTab === 'historial'
-                                ? 'bg-white text-fp-green shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]'
-                                : 'text-white/70 hover:text-white hover:bg-white/10'
-                                }`}
-                        >
-                            <Clock size={16} /> Historial
-                        </button>
+                        {canManage && (
+                            <>
+                                <button
+                                    onClick={() => setActiveTab('contact')}
+                                    className={`px-6 py-3 text-sm font-medium transition-all rounded-t-xl flex items-center gap-2 relative top-[1px] ${activeTab === 'contact'
+                                        ? 'bg-white text-fp-green shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]'
+                                        : 'text-white/70 hover:text-white hover:bg-white/10'
+                                        }`}
+                                >
+                                    <MessageSquare size={16} /> Contacto
+                                </button>
+                                <button
+                                    onClick={() => setActiveTab('historial')}
+                                    className={`px-6 py-3 text-sm font-medium transition-all rounded-t-xl flex items-center gap-2 relative top-[1px] ${activeTab === 'historial'
+                                        ? 'bg-white text-fp-green shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]'
+                                        : 'text-white/70 hover:text-white hover:bg-white/10'
+                                        }`}
+                                >
+                                    <Clock size={16} /> Historial
+                                </button>
+                            </>
+                        )}
                     </div>
                 </div>
 
@@ -769,16 +779,18 @@ export function AffiliateModal({ isOpen, onClose, affiliate, onDelete }: Affilia
                                                         )}
                                                     </button>
                                                 )}
-                                                <button
-                                                    onClick={() => setShowCarnet(!showCarnet)}
-                                                    className={`w-full py-3 rounded-xl font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center space-x-2 shadow-sm ${showCarnet
-                                                        ? "bg-gray-100 text-gray-600 border border-gray-200"
-                                                        : "bg-gray-900 text-white hover:bg-black shadow-gray-900/30"
-                                                        }`}
-                                                >
-                                                    <ShieldCheck size={16} />
-                                                    <span>{showCarnet ? "Cerrar Carnet" : "Carnet Digital"}</span>
-                                                </button>
+                                                {canManage && (
+                                                    <button
+                                                        onClick={() => setShowCarnet(!showCarnet)}
+                                                        className={`w-full py-3 rounded-xl font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center space-x-2 shadow-sm ${showCarnet
+                                                            ? "bg-gray-100 text-gray-600 border border-gray-200"
+                                                            : "bg-gray-900 text-white hover:bg-black shadow-gray-900/30"
+                                                            }`}
+                                                    >
+                                                        <ShieldCheck size={16} />
+                                                        <span>{showCarnet ? "Cerrar Carnet" : "Carnet Digital"}</span>
+                                                    </button>
+                                                )}
                                             </div>
                                         </div>
                                     </div>

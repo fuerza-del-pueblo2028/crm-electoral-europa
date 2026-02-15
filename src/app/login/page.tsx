@@ -38,66 +38,37 @@ export default function LoginPage() {
         }
 
         try {
-            // 1. Intentar buscar en la tabla de 'usuarios' (Admin/Operadores)
-            // Aquí buscamos coincidencia exacta de Cédula Y Contraseña
-            const { data: userData } = await supabase
-                .from('usuarios')
-                .select('*')
-                .or(`cedula.eq."${cleanCedula}",cedula.eq."${formattedCedula}"`)
-                .eq('password', password.trim());
+            // Usar la nueva API de Login segura
+            const response = await fetch('/api/auth/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ cedula: cleanCedula, password })
+            });
 
-            let user = userData && userData.length > 0 ? userData[0] : null;
+            const result = await response.json();
 
-            // 2. Si no es usuario oficial, buscar si es un 'afiliado' registrado
-            if (!user) {
-                // Buscamos al afiliado SOLO por cédula primero para ser más flexibles
-                const { data: affiliateData, error: affError } = await supabase
-                    .from('afiliados')
-                    .select('*')
-                    .or(`cedula.eq."${cleanCedula}",cedula.eq."${formattedCedula}"`)
-                    .maybeSingle();
-
-                if (affError) {
-                    console.error("Error al consultar afiliados:", affError);
-                } else if (affiliateData) {
-                    // Si existe, calculamos la clave esperada basada en la cédula de la DB
-                    const dbCedulaClean = affiliateData.cedula.replace(/-/g, "").trim();
-                    const expectedPassword = dbCedulaClean.substring(Math.max(0, dbCedulaClean.length - 6));
-
-                    if (password.trim() === expectedPassword) {
-                        user = {
-                            cedula: affiliateData.cedula,
-                            nombre: `${affiliateData.nombre} ${affiliateData.apellidos || ''}`.trim(),
-                            rol: 'afiliado',
-                            activo: affiliateData.validado || false,
-                            seccional: affiliateData.seccional || 'Madrid'
-                        };
-                    } else {
-                        console.log("Password incorrecto para afiliado. Se esperaba los últimos 6 dígitos.");
-                    }
-                }
-            }
-
-            if (!user) {
-                setError("Cédula o contraseña incorrecta");
+            if (!response.ok) {
+                setError(result.error || "Cédula o contraseña incorrecta");
                 setLoading(false);
                 return;
             }
 
-            // Guardar datos de sesión
+            const user = result.user;
+
+            // Guardar datos de sesión (compatibilidad con lógica actual)
+            // NOTA: El token real ahora está en una cookie HTTP-Only segura
             localStorage.setItem("auth_token", "true");
             localStorage.setItem("user_role", user.rol);
             localStorage.setItem("user_name", user.nombre);
             localStorage.setItem("user_cedula", user.cedula);
-            localStorage.setItem("user_active", String(user.activo));
             if (user.seccional) {
                 localStorage.setItem("user_seccional", user.seccional);
             }
 
-            // Redirigir al dashboard con recarga completa para limpiar estados
+            // Redirigir al dashboard
             window.location.href = "/";
         } catch (err: any) {
-            setError("Error al iniciar sesión: " + err.message);
+            setError("Error de conexión: " + err.message);
             setLoading(false);
         }
     };

@@ -49,19 +49,17 @@ export default function Dashboard() {
       setIsActiveUser(false);
     }
 
-    fetchRecentDocuments();
-    fetchAffiliateStats();
+    fetchDashboardData();
     setIsMounted(true);
-    fetchStatutes();
 
     // Clock interval
     const clockInterval = setInterval(() => {
       setCurrentTime(new Date());
     }, 1000);
 
-    // Auto-refresh affiliate stats every 30 seconds
+    // Auto-refresh stats every 30 seconds
     const statsInterval = setInterval(() => {
-      fetchAffiliateStats();
+      fetchDashboardData();
     }, 30000);
 
     return () => {
@@ -84,17 +82,6 @@ export default function Dashboard() {
     return () => clearInterval(interval);
   }, [allStatutes]);
 
-  const fetchStatutes = async () => {
-    const { data } = await supabase
-      .from('estatutos')
-      .select('*')
-      .order('articulo', { ascending: true });
-
-    if (data && data.length > 0) {
-      setAllStatutes(data);
-    }
-  };
-
   const rotateStatutes = () => {
     if (allStatutes.length > 0) {
       const shuffled = [...allStatutes].sort(() => 0.5 - Math.random());
@@ -102,53 +89,30 @@ export default function Dashboard() {
     }
   };
 
-  const fetchRecentDocuments = async () => {
-    const { data } = await supabase
-      .from('documentos')
-      .select('*')
-      .order('created_at', { ascending: false })
-      .limit(5);
-
-    if (data) setRecentDocs(data);
-  };
-
-  const fetchAffiliateStats = async () => {
+  const fetchDashboardData = async () => {
     try {
-      // Total actual
-      const { count: total } = await supabase
-        .from('afiliados')
-        .select('*', { count: 'exact', head: true });
+      const response = await fetch('/api/dashboard');
+      if (!response.ok) throw new Error('Error loading dashboard data');
 
-      // Fecha de hace un mes
-      const lastMonthDate = new Date();
-      lastMonthDate.setMonth(lastMonthDate.getMonth() - 1);
+      const data = await response.json();
 
-      // Total del mes anterior (afiliados creados antes de hace un mes)
-      const { count: lastMonth } = await supabase
-        .from('afiliados')
-        .select('*', { count: 'exact', head: true })
-        .lt('created_at', lastMonthDate.toISOString());
+      if (data.statutes) setAllStatutes(data.statutes);
+      if (data.stats) setAffiliateStats(data.stats);
+      if (data.recentDocs) setRecentDocs(data.recentDocs);
 
-      // Por seccional
-      const { data: affiliates } = await supabase
-        .from('afiliados')
-        .select('seccional');
+      // Update authenticated state from server if token was sent
+      // (optional, but good for sync)
+      if (data.isAuthenticated !== undefined) {
+        setIsAuthenticated(data.isAuthenticated);
+      }
 
-      const bySeccional = affiliates?.reduce((acc, curr) => {
-        const sec = curr.seccional || 'Sin asignar';
-        acc[sec] = (acc[sec] || 0) + 1;
-        return acc;
-      }, {} as Record<string, number>) || {};
-
-      setAffiliateStats({
-        total: total || 0,
-        lastMonth: lastMonth || 0,
-        bySeccional
-      });
     } catch (error) {
-      console.error("Error fetching affiliate stats:", error);
+      console.error("Error fetching dashboard data:", error);
     }
   };
+
+  // Removed individual fetch functions as they are now consolidated
+
 
   const formatTime = (date: Date) => {
     return date.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });

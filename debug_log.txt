@@ -1,0 +1,14 @@
+🔍 Debugging login for: 00100180025
+   Clean: 00100180025
+   Formatted: 001-0018002-5
+--- Checking "usuarios" table ---
+✅ Found in "usuarios":
+   ID: 5c45b647-efbb-434d-a9a0-c8dda8ded409
+   Cedula: 00100180025
+   Role: administrador
+   Password (plain): luis311524
+--- Checking "afiliados" table ---
+✅ Found in "afiliados":
+   ID: 6c6afc5b-0d29-4466-916d-5f30ad34daae
+   Cedula: 00100180025
+   Expected Affiliate Password (last 6): 180025

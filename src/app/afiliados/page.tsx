@@ -66,6 +66,12 @@ export default function AffiliatesPage() {
         const isManager = role === "administrador" || role === "operador" || role === "admin" || role === "Admin";
         setCanManage(isManager);
 
+        // 🛡️ SECURITY CHECK: Redirect if not manager
+        if (!isManager) {
+            window.location.href = "/"; // Redirect to Dashboard
+            return;
+        }
+
         // Si es operador, forzar la seccional asignada
         if (role === "operador" && seccional) {
             setSelectedSeccional(seccional);
@@ -86,108 +92,29 @@ export default function AffiliatesPage() {
         setLoading(true);
 
         try {
-            // Start building the query
-            let query = supabase
-                .from('afiliados')
-                .select('*', { count: 'exact' });
+            const params = new URLSearchParams();
+            if (debouncedSearchTerm) params.append('search', debouncedSearchTerm);
+            if (selectedSeccional !== "Todas") params.append('seccional', selectedSeccional);
+            if (selectedRole !== "Todos") params.append('role', selectedRole);
+            if (selectedStatus !== "Todos") params.append('status', selectedStatus);
+            params.append('sort', sortOrder);
+            params.append('page', currentPage.toString());
+            params.append('limit', itemsPerPage.toString());
 
-            // 1. Apply Filters
-            if (debouncedSearchTerm) {
-                // Normalize search term to remove accents (José → jose)
-                // This matches the normalized columns nombre_search and apellidos_search
-                const normalizedTerm = debouncedSearchTerm
-                    .normalize("NFD")
-                    .replace(/[\u0300-\u036f]/g, "")
-                    .toLowerCase();
+            const response = await fetch(`/api/afiliados?${params.toString()}`);
 
-                const term = `%${normalizedTerm}%`;
-
-                query = query.or(
-                    `nombre_search.like.${term},` +
-                    `apellidos_search.like.${term},` +
-                    `cedula.ilike.${term}`
-                );
-            }
-
-            if (selectedSeccional !== "Todas") {
-                query = query.eq('seccional', selectedSeccional);
-            } else if (userRole === "operador" && userSeccional) {
-                // Filtro de seguridad: si es operador y no hay seccional seleccionada (o es "Todas"),
-                // forzar su seccional asignada.
-                query = query.eq('seccional', userSeccional);
-            }
-
-            if (selectedRole !== "Todos") {
-                query = query.eq('role', selectedRole);
-            }
-
-            if (selectedStatus !== "Todos") {
-                query = query.eq('validado', selectedStatus === "Validado");
-            }
-
-            // Date Filter
-            if (dateFilter !== "todos") {
-                const now = new Date();
-                let startDate: Date | null = null;
-
-                switch (dateFilter) {
-                    case "7days":
-                        startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-                        query = query.gte('created_at', startDate.toISOString());
-                        break;
-                    case "30days":
-                        startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-                        query = query.gte('created_at', startDate.toISOString());
-                        break;
-                    case "90days":
-                        startDate = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
-                        query = query.gte('created_at', startDate.toISOString());
-                        break;
-                    case "custom":
-                        if (customStartDate) {
-                            const start = new Date(customStartDate);
-                            start.setHours(0, 0, 0, 0);
-                            query = query.gte('created_at', start.toISOString());
-                        }
-                        if (customEndDate) {
-                            const end = new Date(customEndDate);
-                            end.setHours(23, 59, 59, 999);
-                            query = query.lte('created_at', end.toISOString());
-                        }
-                        break;
+            if (!response.ok) {
+                if (response.status === 401) {
+                    window.location.href = "/login";
+                    return;
                 }
+                throw new Error('Error al cargar afiliados');
             }
 
-            // 2. Apply Sorting
-            switch (sortOrder) {
-                case "newest":
-                    query = query.order('created_at', { ascending: false });
-                    break;
-                case "oldest":
-                    query = query.order('created_at', { ascending: true });
-                    break;
-                case "a-z":
-                    query = query.order('nombre', { ascending: true });
-                    break;
-                case "z-a":
-                    query = query.order('nombre', { ascending: false });
-                    break;
-                default:
-                    query = query.order('created_at', { ascending: false });
-            }
-
-            // 3. Apply Pagination (Range is 0-indexed)
-            const from = (currentPage - 1) * itemsPerPage;
-            const to = from + itemsPerPage - 1;
-            query = query.range(from, to);
-
-            // Execute
-            const { data, error, count } = await query;
-
-            if (error) throw error;
+            const { data, count } = await response.json();
 
             if (data) {
-                const mappedData: Affiliate[] = data.map(item => ({
+                const mappedData: Affiliate[] = data.map((item: any) => ({
                     id: item.id,
                     name: item.nombre,
                     lastName: item.apellidos,
@@ -207,55 +134,29 @@ export default function AffiliatesPage() {
         } catch (error) {
             console.error("Error loading affiliates:", error);
         } finally {
-            setLoading(true); // Small delay for UX feel, actually should be false
+            // Artificial delay to prevent aggressive flickering
             setTimeout(() => setLoading(false), 300);
         }
-    }, [isMounted, debouncedSearchTerm, selectedSeccional, selectedRole, selectedStatus, sortOrder, currentPage, dateFilter, customStartDate, customEndDate]);
+    }, [isMounted, debouncedSearchTerm, selectedSeccional, selectedRole, selectedStatus, sortOrder, currentPage, dateFilter, customStartDate, customEndDate, itemsPerPage]);
 
     // Función de exportación a Excel
     const exportToExcel = async () => {
         try {
-            // Obtener TODOS los afiliados con los filtros aplicados (sin paginación)
-            let query = supabase
-                .from('afiliados')
-                .select('*');
+            // Construir parámetros para la API (limit alto para traer todo)
+            const params = new URLSearchParams();
+            if (debouncedSearchTerm) params.append('search', debouncedSearchTerm);
+            if (selectedSeccional !== "Todas") params.append('seccional', selectedSeccional);
+            if (selectedRole !== "Todos") params.append('role', selectedRole);
+            if (selectedStatus !== "Todos") params.append('status', selectedStatus);
+            params.append('sort', sortOrder);
+            params.append('page', '1');
+            params.append('limit', '10000'); // Límite alto para exportación
 
-            // Aplicar los mismos filtros que en la vista
-            if (debouncedSearchTerm) {
-                const term = `%${debouncedSearchTerm}%`;
-                query = query.or(`nombre.ilike.${term},apellidos.ilike.${term},cedula.ilike.${term}`);
-            }
-            if (selectedSeccional !== "Todas") {
-                query = query.eq('seccional', selectedSeccional);
-            } else if (userRole === "operador" && userSeccional) {
-                query = query.eq('seccional', userSeccional);
-            }
-            if (selectedRole !== "Todos") {
-                query = query.eq('role', selectedRole);
-            }
-            if (selectedStatus !== "Todos") {
-                query = query.eq('validado', selectedStatus === "Validado");
-            }
+            const response = await fetch(`/api/afiliados?${params.toString()}`);
 
-            // Aplicar ordenamiento
-            switch (sortOrder) {
-                case "newest":
-                    query = query.order('created_at', { ascending: false });
-                    break;
-                case "oldest":
-                    query = query.order('created_at', { ascending: true });
-                    break;
-                case "a-z":
-                    query = query.order('nombre', { ascending: true });
-                    break;
-                case "z-a":
-                    query = query.order('nombre', { ascending: false });
-                    break;
-            }
+            if (!response.ok) throw new Error('Error al descargar datos');
 
-            const { data, error } = await query;
-
-            if (error) throw error;
+            const { data } = await response.json();
 
             if (!data || data.length === 0) {
                 alert('No hay datos para exportar con los filtros aplicados');
@@ -263,7 +164,7 @@ export default function AffiliatesPage() {
             }
 
             // Preparar datos para Excel
-            const excelData = data.map((item, index) => ({
+            const excelData = data.map((item: any, index: number) => ({
                 'N°': index + 1,
                 'Nombre': item.nombre,
                 'Apellidos': item.apellidos,
@@ -299,7 +200,7 @@ export default function AffiliatesPage() {
             ];
 
             // Añadir filas
-            excelData.forEach(row => {
+            excelData.forEach((row: any) => {
                 worksheet.addRow({
                     num: row['N°'],
                     nombre: row['Nombre'],

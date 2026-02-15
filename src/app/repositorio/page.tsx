@@ -15,13 +15,29 @@ export default function RepositorioPage() {
 
     const fetchDocuments = async () => {
         setLoading(true);
-        const { data, error } = await supabase
-            .from('documentos')
-            .select('*')
-            .order('created_at', { ascending: false });
+        try {
+            const response = await fetch('/api/repositorio');
 
-        if (data) setDocuments(data);
-        setLoading(false);
+            if (response.status === 401) {
+                // Optional: redirect or show message. 
+                // Dashboard handles this by only showing if authenticated.
+                // Here we might just return empty or alert.
+                // Given the page structure, let's redirect to login if they try to access directly and fail auth.
+                // But wait, useEffect runs on mount.
+                // Let's just set empty and show "No documents" maybe?
+                // Or redirect.
+                return;
+            }
+
+            if (!response.ok) throw new Error('Error loading documents');
+
+            const data = await response.json();
+            if (Array.isArray(data)) setDocuments(data);
+        } catch (error) {
+            console.error("Error fetching documents:", error);
+        } finally {
+            setLoading(false);
+        }
     };
 
     const filteredDocs = documents.filter(doc =>

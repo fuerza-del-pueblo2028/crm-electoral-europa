@@ -71,38 +71,29 @@ export default function EuropaPage() {
     async function loadData() {
         setLoading(true);
         try {
-            // Cargar recintos
-            let recintosQuery = supabase
-                .from('europa_recintos_electorales')
-                .select('*')
-                .order('seccional', { ascending: true })
-                .order('numero_recinto', { ascending: true });
-
+            const params = new URLSearchParams();
             if (selectedSeccional !== 'Todos') {
-                recintosQuery = recintosQuery.eq('seccional', selectedSeccional);
+                params.append('seccional', selectedSeccional);
             }
 
-            const { data: recintosData, error: recintosError } = await recintosQuery;
+            const response = await fetch(`/api/europa?${params.toString()}`);
 
-            if (recintosError) {
-                console.error('Error cargando recintos:', recintosError);
-            } else {
-                setRecintos(recintosData || []);
+            if (!response.ok) {
+                if (response.status === 401) {
+                    window.location.href = "/login";
+                    return;
+                }
+                throw new Error('Error al cargar datos de Europa');
             }
 
-            // Cargar presidentes DM
-            const { data: presidentesData, error: presidentesError } = await supabase
-                .from('europa_presidentes_dm')
-                .select('*')
-                .order('total_afiliados', { ascending: false });
+            const { recintos, presidentes } = await response.json();
 
-            if (presidentesError) {
-                console.error('Error cargando presidentes:', presidentesError);
-            } else {
-                setPresidentes(presidentesData || []);
-            }
+            setRecintos(recintos || []);
+            setPresidentes(presidentes || []);
+
         } catch (error) {
             console.error('Error:', error);
+            // Optional: meaningful user feedback here
         } finally {
             setLoading(false);
         }
