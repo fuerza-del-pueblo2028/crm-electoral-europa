@@ -164,12 +164,17 @@ export default function AdminPage() {
         : [];
 
     const fetchUsers = async () => {
-        const { data } = await supabase
-            .from('usuarios')
-            .select('*')
-            .order('nombre', { ascending: true });
-
-        if (data) setUsuarios(data);
+        try {
+            const response = await fetch('/api/admin/users');
+            if (!response.ok) {
+                console.error("Error fetching users:", await response.text());
+                return;
+            }
+            const data = await response.json();
+            setUsuarios(data);
+        } catch (error) {
+            console.error("Error loading users:", error);
+        }
     };
 
     const handleUserSubmit = async (e: React.FormEvent) => {
