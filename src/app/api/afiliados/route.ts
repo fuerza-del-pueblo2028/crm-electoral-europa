@@ -33,8 +33,14 @@ export async function GET(request: Request) {
             .select('*', { count: 'exact' });
 
         // Apply Filters
+        // Apply Filters
         if (search) {
-            const term = `%${search.toLowerCase()}%`;
+            // Fuzzy search: Normalize, lowercase, then replace vowels with wildcards (_)
+            // This allows matching "Sanchez" with "Sánchez" in the database.
+            // Example: "sanchez" -> "s_nch_z"
+            const normalized = search.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+            const term = `%${normalized.replace(/[aeiou]/g, '_')}%`;
+
             query = query.or(`nombre.ilike.${term},apellidos.ilike.${term},cedula.ilike.${term}`);
         }
 

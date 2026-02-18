@@ -3,6 +3,7 @@
 import { Download, Search, FileText } from "lucide-react";
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
+import { normalizeText } from "@/lib/utils";
 
 export default function RepositorioPage() {
     const [filter, setFilter] = useState("");
@@ -40,10 +41,11 @@ export default function RepositorioPage() {
         }
     };
 
-    const filteredDocs = documents.filter(doc =>
-        doc.nombre.toLowerCase().includes(filter.toLowerCase()) ||
-        (doc.categoria && doc.categoria.toLowerCase().includes(filter.toLowerCase()))
-    );
+    const filteredDocs = documents.filter(doc => {
+        const term = normalizeText(filter);
+        return normalizeText(doc.nombre).includes(term) ||
+            (doc.categoria && normalizeText(doc.categoria).includes(term));
+    });
 
     const formatBytes = (bytes: number) => {
         if (bytes === 0) return '0 Bytes';

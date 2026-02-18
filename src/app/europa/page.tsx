@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { dbInsert, dbUpdate, dbDelete } from '@/lib/dbWrite';
+import { normalizeText } from '@/lib/utils';
 import { Globe, MapPin, Users, Building2, Search, Filter, Edit2, X, Save } from 'lucide-react';
 import { PresidenteModal } from '@/components/PresidenteModal';
 import { RecintoModal } from '@/components/RecintoModal';
@@ -230,16 +231,18 @@ export default function EuropaPage() {
         // Form state is now handled by the modal
     }
 
-    const filteredRecintos = recintos.filter(r =>
-        r.nombre_recinto.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        r.zona_ciudad.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        r.numero_recinto.includes(searchTerm)
-    );
+    const filteredRecintos = recintos.filter(r => {
+        const term = normalizeText(searchTerm);
+        return normalizeText(r.nombre_recinto).includes(term) ||
+            normalizeText(r.zona_ciudad).includes(term) ||
+            normalizeText(r.numero_recinto).includes(term);
+    });
 
-    const filteredPresidentes = presidentes.filter(p =>
-        p.nombre_completo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (p.condado_provincia?.toLowerCase().includes(searchTerm.toLowerCase()))
-    );
+    const filteredPresidentes = presidentes.filter(p => {
+        const term = normalizeText(searchTerm);
+        return normalizeText(p.nombre_completo).includes(term) ||
+            (p.condado_provincia && normalizeText(p.condado_provincia).includes(term));
+    });
 
     // Estadísticas
     const stats = {

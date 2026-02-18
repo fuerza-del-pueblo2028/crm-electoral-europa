@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { supabase } from "@/lib/supabase";
+import { cn, normalizeText } from "@/lib/utils";
 import { Book, Search, FileText, ArrowLeft, Loader2, ChevronRight, Hash, ExternalLink, Printer } from "lucide-react";
 import Link from "next/link";
 
@@ -38,10 +38,14 @@ export default function StatutesPage() {
     };
 
     const filteredStatutes = useMemo(() => {
+        if (!searchQuery) return statutes;
+
+        const query = normalizeText(searchQuery);
+
         return statutes.filter(s =>
-            s.titulo.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            s.articulo.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            s.contenido.toLowerCase().includes(searchQuery.toLowerCase())
+            normalizeText(s.titulo).includes(query) ||
+            normalizeText(s.articulo).includes(query) ||
+            normalizeText(s.contenido).includes(query)
         );
     }, [statutes, searchQuery]);
 

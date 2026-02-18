@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { Upload, FileText, Settings, Trash2, X, Book, UserPlus, Users, LayoutDashboard, KeyRound, BarChart3, Eye, Vote, UserCheck, ShieldCheck, Trophy, PlusCircle, Search, EyeOff, RefreshCw, Play, Lock, Image as ImageIcon, FileSearch, CheckCircle2, Loader2, Link as LinkIcon, FolderOpen, AlertTriangle } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { dbInsert, dbUpdate, dbDelete } from "@/lib/dbWrite";
+import { normalizeText } from "@/lib/utils";
 
 export default function AdminPage() {
     const [isMounted, setIsMounted] = useState(false);
@@ -23,7 +24,8 @@ export default function AdminPage() {
     const [cargos, setCargos] = useState<any[]>([]);
     const [candidatos, setCandidatos] = useState<any[]>([]);
     const [padron, setPadron] = useState<any[]>([]);
-    const [filterSeccional, setFilterSeccional] = useState("Todas"); // New filter state
+    const [filterSeccional, setFilterSeccional] = useState("Todas");
+    const [padronSearch, setPadronSearch] = useState(""); // New filter state
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [filePreview, setFilePreview] = useState<string | null>(null);
     const [dragActive, setDragActive] = useState(false);
@@ -1367,7 +1369,13 @@ export default function AdminPage() {
                                             <option value="Bilbao">Bilbao</option>
                                             <option value="Zaragoza">Zaragoza</option>
                                         </select>
-                                        <input type="text" placeholder="Buscar por cédula..." className="flex-1 text-xs p-2 border border-gray-200 rounded-lg outline-none focus:ring-1 focus:ring-[#00843D]" />
+                                        <input
+                                            type="text"
+                                            value={padronSearch}
+                                            onChange={(e) => setPadronSearch(e.target.value)}
+                                            placeholder="Buscar por cédula o nombre..."
+                                            className="flex-1 text-xs p-2 border border-gray-200 rounded-lg outline-none focus:ring-1 focus:ring-[#00843D]"
+                                        />
                                     </div>
                                     <button className="bg-gray-50 p-2 rounded-lg text-gray-400"><Search size={16} /></button>
                                 </div>
@@ -1389,7 +1397,12 @@ export default function AdminPage() {
                                             </thead>
                                             <tbody className="divide-y divide-gray-50">
                                                 {padron
-                                                    .filter(v => filterSeccional === "Todas" || v.seccional === filterSeccional)
+                                                    .filter(v => {
+                                                        const matchesSeccional = filterSeccional === "Todas" || v.seccional === filterSeccional;
+                                                        const term = normalizeText(padronSearch);
+                                                        const matchesSearch = normalizeText(v.cedula).includes(term) || normalizeText(v.nombre).includes(term);
+                                                        return matchesSeccional && matchesSearch;
+                                                    })
                                                     .map(v => (
                                                         <tr key={v.id} className="hover:bg-gray-50 text-xs">
                                                             <td className="px-4 py-3 font-mono font-bold text-gray-600">{v.cedula}</td>
