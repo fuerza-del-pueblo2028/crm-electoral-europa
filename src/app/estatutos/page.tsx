@@ -205,20 +205,14 @@ export default function StatutesPage() {
                 <div className="max-w-4xl mx-auto px-12 py-20 min-h-full flex flex-col print-content">
                     {/* Header para Impresión (Papel Timbrado) */}
                     <div className="print-only mb-16 border-b-[6px] border-[#137228] pb-8 relative">
-                        <div className="flex justify-between items-start mb-6">
+                        <div className="flex justify-between items-center mb-6">
                             <div>
-                                <h1 className="text-3xl font-black text-gray-900 uppercase leading-none tracking-tighter">Fuerza del Pueblo Europa</h1>
-                                <p className="text-sm font-bold text-gray-500 uppercase tracking-[0.2em] mt-2">Secretaría de Asuntos Electorales</p>
+                                <h1 className="text-4xl font-black text-[#137228] uppercase leading-none tracking-tighter">Secretaría Electoral Europa</h1>
+                                <p className="text-[10px] font-black text-gray-300 uppercase tracking-[0.5em] mt-3">Documento Oficial • Estatutos del Partido</p>
                             </div>
-                            <div className="bg-[#137228] p-5 rounded-[24px] text-white shadow-xl flex items-center justify-center border-4 border-green-50">
-                                <Book size={40} />
+                            <div className="bg-[#137228] p-4 rounded-[20px] text-white shadow-xl flex items-center justify-center border-4 border-green-50">
+                                <Book size={32} />
                             </div>
-                        </div>
-                        <div className="mt-10">
-                            <h2 className="text-5xl font-black text-[#137228] italic uppercase tracking-tighter leading-none">
-                                Secretaría Electoral
-                            </h2>
-                            <p className="text-[10px] font-black text-gray-300 uppercase tracking-[0.5em] mt-3">Documento Oficial • Estatutos del Partido</p>
                         </div>
                         {/* Marca de agua decorativa para el print */}
                         <div className="absolute top-0 right-0 -mt-10 -mr-10 opacity-[0.03] pointer-events-none">
