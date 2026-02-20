@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { BarChart3, ChevronRight, MapPin, Download, Home, ArrowLeft, Users, Building2, School, TrendingUp, PieChart as PieChartIcon, CheckCircle2, AlertCircle, Trash2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { dbDelete } from "@/lib/dbWrite";
+import { useAuth } from "@/context/AuthContext";
 import {
     BarChart,
     Bar,
@@ -42,15 +43,18 @@ export default function DatosElectorales() {
     const seccionales = ["Madrid", "Barcelona", "Milano", "Zurich", "Holanda", "Valencia"];
     const COLORS = ["#00843D", "#0051B5", "#7B2CBF", "#64748B", "#EF4444", "#F59E0B"];
 
+    const { isAuthenticated, isLoading } = useAuth();
+
     useEffect(() => {
-        const token = localStorage.getItem("auth_token");
-        if (!token) {
+        if (isLoading) return;
+
+        if (!isAuthenticated) {
             window.location.href = "/login";
             return;
         }
         setIsMounted(true);
         fetchData();
-    }, []);
+    }, [isAuthenticated, isLoading]);
 
     const fetchData = async () => {
         // Fetch Actas

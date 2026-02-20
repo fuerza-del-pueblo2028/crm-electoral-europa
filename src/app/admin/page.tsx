@@ -5,6 +5,7 @@ import { Upload, FileText, Settings, Trash2, X, Book, UserPlus, Users, LayoutDas
 import { supabase } from "@/lib/supabase";
 import { dbInsert, dbUpdate, dbDelete } from "@/lib/dbWrite";
 import { normalizeText } from "@/lib/utils";
+import { useAuth } from "@/context/AuthContext";
 
 export default function AdminPage() {
     const [isMounted, setIsMounted] = useState(false);
@@ -63,28 +64,30 @@ export default function AdminPage() {
     const [bulkUploadResults, setBulkUploadResults] = useState<Array<{ file: string; status: 'success' | 'error'; message: string }>>([]);
     const [processingBulk, setProcessingBulk] = useState(false);
 
-    useEffect(() => {
-        setIsMounted(true);
-        const token = localStorage.getItem("auth_token");
-        const role = localStorage.getItem("user_role");
+    // Contexto Seguro
+    const { user, isAuthenticated, isLoading } = useAuth();
 
-        if (!token) {
+    useEffect(() => {
+        if (isLoading) return;
+
+        if (!isAuthenticated || !user) {
             window.location.href = "/login";
             return;
         }
 
-        if (role !== "administrador") {
+        if (user.role !== "administrador") {
             alert("No tienes permisos para acceder a esta página");
             window.location.href = "/";
             return;
         }
 
+        setIsMounted(true);
         fetchDocuments();
         fetchStatutes();
         fetchUsers();
         fetchActas();
         fetchElectionData();
-    }, []);
+    }, [user, isAuthenticated, isLoading]);
 
     const fetchElectionData = async () => {
         fetchCargos();

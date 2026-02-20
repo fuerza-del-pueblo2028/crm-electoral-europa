@@ -4,8 +4,10 @@ import { Download, Search, FileText } from "lucide-react";
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { normalizeText } from "@/lib/utils";
+import { useAuth } from "@/context/AuthContext";
 
 export default function RepositorioPage() {
+    const { isAuthenticated } = useAuth();
     const [filter, setFilter] = useState("");
     const [documents, setDocuments] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
@@ -120,8 +122,7 @@ export default function RepositorioPage() {
                                     <td className="px-6 py-4 text-right">
                                         <button
                                             onClick={() => {
-                                                const token = localStorage.getItem("auth_token");
-                                                if (!token) {
+                                                if (!isAuthenticated) {
                                                     alert("Debes iniciar sesión para descargar documentos oficiales.");
                                                     window.location.href = "/login";
                                                     return;

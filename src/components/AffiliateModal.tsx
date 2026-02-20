@@ -7,6 +7,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { dbUpdate, dbDelete, dbUpsert } from "@/lib/dbWrite";
 import { registrarCambio, obtenerHistorial, formatAccion } from "@/lib/historial";
+import { useAuth } from "@/context/AuthContext";
 
 interface AffiliateModalProps {
     isOpen: boolean;
@@ -62,9 +63,12 @@ export function AffiliateModal({ isOpen, onClose, affiliate, onDelete }: Affilia
         }
     }, [selectedTemplate]);
 
+    // Roles del contexto seguro server-side
+    const { user } = useAuth();
+
     useEffect(() => {
-        const role = localStorage.getItem('user_role');
-        const userSeccional = localStorage.getItem('user_seccional');
+        const role = user?.role;
+        const userSeccional = user?.seccional;
 
         if (role === 'administrador' || role === 'admin' || role === 'Admin') {
             setCanManage(true);
@@ -73,7 +77,7 @@ export function AffiliateModal({ isOpen, onClose, affiliate, onDelete }: Affilia
         } else {
             setCanManage(false);
         }
-    }, [affiliate]);
+    }, [affiliate, user]);
 
     // Cargar historial cuando se abre el modal
     useEffect(() => {
@@ -792,6 +796,47 @@ export function AffiliateModal({ isOpen, onClose, affiliate, onDelete }: Affilia
                                                     </button>
                                                 )}
                                             </div>
+                                            {/* Nuevo botón para restaurar contraseña */}
+                                            {canManage && (
+                                                <button
+                                                    onClick={async () => {
+                                                        const confirmMsg = `🔐 RESTAURAR CONTRASEÑA GENÉRICA\n\n` +
+                                                            `¿Estás seguro de que deseas restaurar la contraseña de este afiliado?\n` +
+                                                            `La contraseña volverá a ser temporalmente los últimos 6 dígitos de su cédula y se le obligará a crear una nueva al iniciar sesión.`;
+                                                        if (!confirm(confirmMsg)) return;
+
+                                                        setIsSubmitting(true);
+                                                        try {
+                                                            const result = await dbUpdate('afiliados', {
+                                                                password_hash: null,
+                                                                must_change_password: true
+                                                            }, { id: affiliate.id });
+
+                                                            if (!result.success) {
+                                                                alert('❌ Error al restaurar contraseña: ' + result.error);
+                                                            } else {
+                                                                alert('✅ Contraseña restablecida a los últimos 6 dígitos de la cédula.');
+                                                                await registrarCambio({
+                                                                    afiliado_id: affiliate.id,
+                                                                    accion: 'editado',
+                                                                    campo_modificado: 'contraseña',
+                                                                    valor_anterior: 'segura',
+                                                                    valor_nuevo: 'temporal genérica'
+                                                                });
+                                                            }
+                                                        } catch (error: any) {
+                                                            alert('Error: ' + error.message);
+                                                        } finally {
+                                                            setIsSubmitting(false);
+                                                        }
+                                                    }}
+                                                    className="w-full mt-3 py-3 rounded-xl font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center space-x-2 shadow-sm bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-200"
+                                                    disabled={isSubmitting}
+                                                >
+                                                    <ShieldCheck size={16} />
+                                                    <span>Restaurar Clave Genérica</span>
+                                                </button>
+                                            )}
                                         </div>
                                     </div>
                                 </div>

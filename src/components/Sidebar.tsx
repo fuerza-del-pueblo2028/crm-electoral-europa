@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { Home, Users, BarChart2, Book, Settings, LogOut, Vote, BarChart3, FileText, X, Globe, Mail, MessageSquare } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSidebar } from "./ui/SidebarContext";
+import { useAuth } from "@/context/AuthContext";
 
 const menuItems = [
     { name: "Inicio", icon: Home, href: "/", access: "public" },
@@ -23,18 +24,11 @@ const menuItems = [
 
 export function Sidebar() {
     const pathname = usePathname();
-    const [userRole, setUserRole] = useState<string | null>(null);
-    const [isActiveUser, setIsActiveUser] = useState(false);
+    const { user, isAuthenticated, logout } = useAuth();
     const { isMobileOpen, closeSidebar } = useSidebar();
 
-    useEffect(() => {
-        const role = localStorage.getItem("user_role");
-        const active = localStorage.getItem("user_active") === "true";
-        setUserRole(role);
-        setIsActiveUser(active);
-    }, [pathname]);
-
-    const isAuthenticated = !!userRole;
+    const userRole = user?.role?.toLowerCase() || null;
+    const isActiveUser = true; // Simplified for sidebar
 
     // Solo ocultar si estamos explícitamente en login y NO hay rol definido
     if (pathname?.includes("/login") && !userRole) return null;
@@ -117,10 +111,7 @@ export function Sidebar() {
                 <div className="p-4 border-t border-white/10 relative z-10 bg-black/5">
                     {isAuthenticated ? (
                         <button
-                            onClick={() => {
-                                localStorage.clear();
-                                window.location.href = "/login";
-                            }}
+                            onClick={logout}
                             className="flex items-center w-full px-4 py-3 text-sm font-bold text-red-100 hover:bg-red-500/20 hover:text-white rounded-xl transition-colors"
                         >
                             <LogOut className="mr-3 h-5 w-5" />

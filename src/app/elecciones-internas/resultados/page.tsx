@@ -4,19 +4,28 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { Trophy, Users, BarChart3, ArrowLeft, Loader2, Award, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
+import { useAuth } from "@/context/AuthContext";
 
 export default function ElectionResults() {
     const [loading, setLoading] = useState(true);
     const [cargos, setCargos] = useState<any[]>([]);
 
+    const { user, isAuthenticated, isLoading } = useAuth();
+
     useEffect(() => {
-        const role = localStorage.getItem("user_role");
+        if (isLoading) return;
+        if (!isAuthenticated || !user) {
+            window.location.href = "/login";
+            return;
+        }
+
+        const role = user.role?.toLowerCase();
         if (role !== "administrador" && role !== "operador") {
             window.location.href = "/login";
             return;
         }
         fetchPublicResults();
-    }, []);
+    }, [user, isAuthenticated, isLoading]);
 
     const fetchPublicResults = async () => {
         setLoading(true);

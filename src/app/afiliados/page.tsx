@@ -9,6 +9,7 @@ import { NewAffiliateModal } from "@/components/NewAffiliateModal";
 import { ImportAffiliatesModal } from "@/components/ImportAffiliatesModal";
 import { supabase } from "@/lib/supabase";
 import ExcelJS from 'exceljs';
+import { useAuth } from "@/context/AuthContext";
 
 // Debounce helper
 function useDebounce<T>(value: T, delay: number): T {
@@ -50,15 +51,19 @@ export default function AffiliatesPage() {
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 12;
 
-    useEffect(() => {
-        const token = localStorage.getItem("auth_token");
-        const role = localStorage.getItem("user_role");
-        const seccional = localStorage.getItem("user_seccional");
+    // Contexto Seguro
+    const { user, isAuthenticated, isLoading } = useAuth();
 
-        if (!token) {
+    useEffect(() => {
+        if (isLoading) return; // Esperar a que el contexto verifique sesión via HTTP
+
+        if (!isAuthenticated || !user) {
             window.location.href = "/login";
             return;
         }
+
+        const role = user.role;
+        const seccional = user.seccional || null;
 
         setUserRole(role);
         setUserSeccional(seccional);
@@ -78,7 +83,7 @@ export default function AffiliatesPage() {
         }
 
         setIsMounted(true);
-    }, []);
+    }, [user, isAuthenticated, isLoading]);
 
     const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
 

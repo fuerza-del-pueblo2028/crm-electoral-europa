@@ -2,10 +2,11 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Lock, ShieldCheck, Mail, UserPlus, ArrowLeft, CreditCard } from "lucide-react";
+import { Lock, ShieldCheck, Mail, UserPlus, ArrowLeft, CreditCard, Loader2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { dbInsert } from "@/lib/dbWrite";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/context/AuthContext";
 
 export default function LoginPage() {
     const router = useRouter();
@@ -24,6 +25,21 @@ export default function LoginPage() {
     const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
     const [regForm, setRegForm] = useState({ cedula: "", nombre: "", email: "" });
     const [regLoading, setRegLoading] = useState(false);
+
+    // Contexto de autenticación
+    const { isAuthenticated, isLoading: authLoading, refreshSession } = useAuth();
+
+    // Redirección si ya está loqueado
+    if (!authLoading && isAuthenticated) {
+        if (typeof window !== 'undefined') {
+            window.location.href = "/";
+        }
+        return (
+            <div className="min-h-screen bg-fp-green flex items-center justify-center">
+                <Loader2 className="animate-spin text-white" size={48} />
+            </div>
+        );
+    }
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -53,19 +69,16 @@ export default function LoginPage() {
                 return;
             }
 
-            const user = result.user;
-
-            // Guardar datos de sesión (compatibilidad con lógica actual)
-            // NOTA: El token real ahora está en una cookie HTTP-Only segura
-            localStorage.setItem("auth_token", "true");
-            localStorage.setItem("user_role", user.rol);
-            localStorage.setItem("user_name", user.nombre);
-            localStorage.setItem("user_cedula", user.cedula);
-            // Fix: Save active status as string "true"/"false"
-            localStorage.setItem("user_active", String(user.activo));
-            if (user.seccional) {
-                localStorage.setItem("user_seccional", user.seccional);
+            if (result.requirePasswordChange) {
+                // El usuario debe crear su contraseña segura
+                sessionStorage.setItem("temp_user_id", result.tempUserId);
+                sessionStorage.setItem("temp_user_role", result.tempUserRole);
+                router.push("/login/force-change");
+                return;
             }
+
+            // Refrescar la sesión en Context
+            await refreshSession();
 
             // Redirigir al dashboard
             window.location.href = "/";
@@ -149,40 +162,39 @@ export default function LoginPage() {
         }
 
         try {
-            const { data, error: dbError } = await supabase
-                .from('usuarios')
-                .select('email, password')
-                .or(`cedula.eq."${cleanCedula}",cedula.eq."${formattedCedula}"`);
+            const response = await fetch('/api/auth/reset-password', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ cedula: cleanCedula }),
+            });
 
-            const user = data && data.length > 0 ? data[0] : null;
+            const result = await response.json();
 
-            if (dbError || !user) {
-                setError("Cédula no encontrada.");
+            if (!response.ok) {
+                setError(result.error || "Cédula no encontrada.");
                 setForgotLoading(false);
                 return;
             }
 
-            // Simulación de envío de correo de recuperación
-            await fetch('/api/send-otp.php', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    email: user.email,
-                    otp: "RECUPERACIÓN",
-                    nombre: "Usuario CRM",
-                    message: `Tu contraseña actual es: ${user.password}`
-                }),
-            });
-
-            setSuccess("Instrucciones enviadas a tu correo registrado.");
-            setIsForgotModalOpen(false);
-            setForgotCedula("");
+            setSuccess("Si la cédula existe y tiene correo, te hemos enviado las instrucciones de recuperación.");
+            setTimeout(() => {
+                setIsForgotModalOpen(false);
+                setForgotCedula("");
+            }, 5000);
         } catch (err: any) {
             setError("Error al recuperar clave.");
         } finally {
             setForgotLoading(false);
         }
     };
+
+    if (authLoading) {
+        return (
+            <div className="min-h-screen bg-fp-green flex items-center justify-center p-4">
+                <Loader2 className="animate-spin text-white" size={48} />
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen bg-fp-green flex items-center justify-center p-4 relative overflow-hidden">

@@ -6,32 +6,22 @@ import { useState, useEffect } from "react";
 import { useSidebar } from "./ui/SidebarContext";
 import { usePathname } from "next/navigation";
 import { ChangePasswordModal } from "./ChangePasswordModal";
+import { useAuth } from "@/context/AuthContext";
 
 export function Header() {
-    const [userRole, setUserRole] = useState("");
-    const [userName, setUserName] = useState("");
-    const [userCedula, setUserCedula] = useState("");
-    const [isActiveUser, setIsActiveUser] = useState(false);
+    const { user, isAuthenticated, logout } = useAuth();
     const [isChangePassOpen, setIsChangePassOpen] = useState(false);
     const pathname = usePathname();
 
     const { toggleSidebar } = useSidebar();
 
-    useEffect(() => {
-        const role = localStorage.getItem("user_role") || "";
-        const name = localStorage.getItem("user_name");
-        const cedula = localStorage.getItem("user_cedula") || "";
-        const active = localStorage.getItem("user_active") === "true";
-        setUserRole(role);
-        setUserName(name || (role ? "Usuario" : "Invitado"));
-        setUserCedula(cedula);
-        setIsActiveUser(active);
-    }, [pathname]);
+    const userRole = user?.role?.toLowerCase() || "";
+    const userName = user?.nombre || (userRole ? "Usuario" : "Invitado");
+    const userCedula = user?.cedula || "";
+    const isActiveUser = true; // Simplified visual active status
 
     // Solo ocultar si estamos explícitamente en login y NO hay rol definido
     if (pathname?.includes("/login") && !userRole) return null;
-
-    const isAuthenticated = !!userRole;
 
     return (
         <header className="bg-[#137228] px-3 md:px-8 py-2 md:py-4 shadow-lg border-b-2 border-[#0aa059] flex justify-between items-center sticky top-0 z-40 no-print">
@@ -111,10 +101,7 @@ export function Header() {
                         </button>
 
                         <button
-                            onClick={() => {
-                                localStorage.clear();
-                                window.location.href = "/login";
-                            }}
+                            onClick={logout}
                             className="flex items-center space-x-2 bg-red-600/90 hover:bg-red-700 px-3 py-2 md:px-4 md:py-2 rounded-lg transition-all shadow-md text-white whitespace-nowrap"
                         >
                             <LogOut size={18} />

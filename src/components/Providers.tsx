@@ -1,11 +1,14 @@
 "use client";
 
 import { SidebarProvider } from "@/components/ui/SidebarContext";
+import { AuthProvider } from "@/context/AuthContext";
 
 export function Providers({ children }: { children: React.ReactNode }) {
     return (
-        <SidebarProvider>
-            {children}
-        </SidebarProvider>
+        <AuthProvider>
+            <SidebarProvider>
+                {children}
+            </SidebarProvider>
+        </AuthProvider>
     );
 }

@@ -1,8 +1,14 @@
 import { SignJWT, jwtVerify } from 'jose';
 
-// Generar una clave secreta fuerte o usar la del entorno
 // En producción, esto DEBE estar en .env.local como JWT_SECRET
-const SECRET_KEY = process.env.JWT_SECRET || 'clave_secreta_super_segura_crm_europa_2028';
+if (!process.env.JWT_SECRET) {
+    if (process.env.NODE_ENV === 'production') {
+        throw new Error('CRITICAL: JWT_SECRET environment variable is missing.');
+    }
+    console.warn('WARNING: JWT_SECRET is missing. Using an insecure fallback for DEVELOPMENT ONLY.');
+}
+
+const SECRET_KEY = process.env.JWT_SECRET || 'fallback_development_secret_only';
 const key = new TextEncoder().encode(SECRET_KEY);
 
 export async function signToken(payload: any) {

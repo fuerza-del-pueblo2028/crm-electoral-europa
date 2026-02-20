@@ -8,6 +8,8 @@ export interface HistorialEntry {
     valor_anterior?: string;
     valor_nuevo?: string;
     detalles?: Record<string, any>;
+    usuarioNombre?: string;
+    usuarioEmail?: string;
 }
 
 /**
@@ -15,9 +17,8 @@ export interface HistorialEntry {
  */
 export async function registrarCambio(entry: HistorialEntry): Promise<void> {
     try {
-        // Obtener datos del usuario actual del localStorage
-        const usuarioNombre = localStorage.getItem('user_name') || 'Sistema';
-        const usuarioEmail = localStorage.getItem('user_email') || localStorage.getItem('auth_token') || 'sistema@fp.do';
+        const usuarioNombre = entry.usuarioNombre || 'Sistema';
+        const usuarioEmail = entry.usuarioEmail || 'sistema@fp.do';
 
         const result = await dbInsert('afiliados_historial', {
             afiliado_id: entry.afiliado_id,

@@ -7,6 +7,7 @@ import { normalizeText } from '@/lib/utils';
 import { Globe, MapPin, Users, Building2, Search, Filter, Edit2, X, Save } from 'lucide-react';
 import { PresidenteModal } from '@/components/PresidenteModal';
 import { RecintoModal } from '@/components/RecintoModal';
+import { useAuth } from '@/context/AuthContext';
 
 type Recinto = {
     id: string;
@@ -53,21 +54,22 @@ export default function EuropaPage() {
 
     const seccionales = ['Todos', 'Madrid', 'Barcelona', 'Milano', 'Holanda', 'Valencia', 'Zurich'];
 
+    const { user, isAuthenticated, isLoading } = useAuth();
+
     useEffect(() => {
-        const token = localStorage.getItem("auth_token");
-        if (!token) {
+        if (isLoading) return;
+
+        if (!isAuthenticated || !user) {
             window.location.href = "/login";
             return;
         }
 
-        const role = localStorage.getItem('user_role');
-        console.log('Current user role:', role);
+        const role = user.role;
         const normalizedRole = role?.toLowerCase().trim();
-        console.log('Is Admin check:', normalizedRole === 'administrador');
         setIsAdmin(normalizedRole === 'administrador');
 
         loadData();
-    }, [selectedSeccional]);
+    }, [selectedSeccional, user, isAuthenticated, isLoading]);
 
     async function loadData() {
         setLoading(true);

@@ -28,20 +28,13 @@ export async function GET(request: Request) {
         const to = from + limit - 1;
 
         // 3. Build Query using Admin Client
-        let query = supabaseAdmin
-            .from('afiliados')
-            .select('*', { count: 'exact' });
+        let query;
 
-        // Apply Filters
-        // Apply Filters
         if (search) {
-            // Fuzzy search: Normalize, lowercase, then replace vowels with wildcards (_)
-            // This allows matching "Sanchez" with "Sánchez" in the database.
-            // Example: "sanchez" -> "s_nch_z"
-            const normalized = search.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
-            const term = `%${normalized.replace(/[aeiou]/g, '_')}%`;
-
-            query = query.or(`nombre.ilike.${term},apellidos.ilike.${term},cedula.ilike.${term}`);
+            // Fuzzy search nativa de Postgre usando RPC
+            query = supabaseAdmin.rpc('buscar_afiliados_unaccent', { busqueda: search.trim() }, { count: 'exact' });
+        } else {
+            query = supabaseAdmin.from('afiliados').select('*', { count: 'exact' });
         }
 
         if (seccional && seccional !== 'Todas') {

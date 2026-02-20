@@ -7,6 +7,7 @@ import { supabase } from "@/lib/supabase";
 import { cn } from "@/lib/utils";
 import { WelcomeStructureModal } from "@/components/WelcomeStructureModal";
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Cell } from "recharts";
+import { useAuth } from "@/context/AuthContext";
 
 export default function Dashboard() {
   const [isMounted, setIsMounted] = useState(false);
@@ -16,39 +17,32 @@ export default function Dashboard() {
   const [recentDocs, setRecentDocs] = useState<any[]>([]);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [isWelcomeModalOpen, setIsWelcomeModalOpen] = useState(false);
-  const [userName, setUserName] = useState("Usuario");
   const [isTransitioning, setIsTransitioning] = useState(false);
-
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
-  const [isActiveUser, setIsActiveUser] = useState(false);
   const [affiliateStats, setAffiliateStats] = useState({
     total: 0,
     lastMonth: 0,
     bySeccional: {} as Record<string, number>
   });
 
+  // Contexto de autenticacion seguro
+  const { user, isAuthenticated, isLoading } = useAuth();
+
+  // Efecto para redirigir ocultando modal si no hay auth
   useEffect(() => {
-    const token = localStorage.getItem("auth_token");
-    const role = localStorage.getItem("user_role");
-
-    // Si no hay token, somos invitados
-    if (token) {
-      setIsAuthenticated(true);
-      const savedName = localStorage.getItem("user_name");
-      if (savedName) setUserName(savedName);
-
-      const isActive = localStorage.getItem("user_active") === "true";
-      setIsActiveUser(isActive);
-      const hasSeenWelcome = localStorage.getItem("welcome_seen") === "true";
-      if (isActive && !hasSeenWelcome) {
-        setIsWelcomeModalOpen(true);
-      }
-    } else {
-      setIsAuthenticated(false);
-      setUserName("Invitado");
-      setIsActiveUser(false);
+    if (isLoading) return;
+    if (!isAuthenticated) {
+      window.location.href = "/login";
+      return;
     }
 
+    // Checar si ya vio modal
+    const hasSeenWelcome = localStorage.getItem("welcome_seen") === "true";
+    if (!hasSeenWelcome) {
+      setIsWelcomeModalOpen(true);
+    }
+  }, [isAuthenticated, isLoading]);
+
+  useEffect(() => {
     fetchDashboardData();
     setIsMounted(true);
 
@@ -100,12 +94,7 @@ export default function Dashboard() {
       if (data.stats) setAffiliateStats(data.stats);
       if (data.recentDocs) setRecentDocs(data.recentDocs);
 
-      // Update authenticated state from server if token was sent
-      // (optional, but good for sync)
-      if (data.isAuthenticated !== undefined) {
-        setIsAuthenticated(data.isAuthenticated);
-      }
-
+      if (data.recentDocs) setRecentDocs(data.recentDocs);
     } catch (error) {
       console.error("Error fetching dashboard data:", error);
     }
@@ -130,13 +119,15 @@ export default function Dashboard() {
   };
 
 
-  if (!isMounted) {
+  if (!isMounted || isLoading) {
     return <div className="min-h-screen bg-gray-50 flex items-center justify-center">
       <RefreshCw className="animate-spin text-[#137228]" size={40} />
     </div>;
   }
 
-  const userRole = typeof window !== 'undefined' ? localStorage.getItem("user_role") : null;
+  const userName = user?.nombre || "Invitado";
+
+  const userRole = user?.role?.toLowerCase() || null;
   const isStaff = userRole === "administrador" || userRole === "operador";
 
   return (
@@ -150,15 +141,13 @@ export default function Dashboard() {
               <span className="hidden sm:inline-block w-2 h-2 rounded-full bg-fp-green animate-pulse"></span> {getGreeting()}
             </p>
             <h1 className="text-5xl font-black text-gray-900 tracking-tighter leading-none uppercase italic">
-              ¡HOLA, {isAuthenticated === false ? "Invitado" : userName.split(' ')[0]}!
+              ¡HOLA, {!isAuthenticated ? "Invitado" : userName.split(' ')[0]}!
             </h1>
 
             {isAuthenticated && (
-              isActiveUser && (
-                <div className="inline-flex items-center bg-fp-green/10 text-fp-green px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest mt-2 border border-fp-green/20">
-                  <ShieldCheck size={12} className="mr-1.5" /> Estructura Confirmada
-                </div>
-              )
+              <div className="inline-flex items-center bg-fp-green/10 text-fp-green px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest mt-2 border border-fp-green/20">
+                <ShieldCheck size={12} className="mr-1.5" /> Estructura Confirmada
+              </div>
             )}
 
             <p className="text-gray-400 font-medium text-sm flex items-center gap-2 mt-2">
@@ -169,12 +158,12 @@ export default function Dashboard() {
 
         <div className="hidden md:block text-right pb-1">
           <p className="text-[10px] font-black text-gray-300 uppercase tracking-[0.3em] mb-1">
-            Status: {isAuthenticated ? (isActiveUser ? "Confirmado" : "Pendiente") : "Visitante"}
+            Status: {isAuthenticated ? "Confirmado" : "Visitante"}
           </p>
           <div className="h-1 w-32 bg-gray-100 rounded-full overflow-hidden">
             <div className={cn(
               "h-full animate-pulse-slow w-full",
-              isAuthenticated ? (isActiveUser ? "bg-[#137228]" : "bg-yellow-400") : "bg-blue-400"
+              isAuthenticated ? "bg-[#137228]" : "bg-blue-400"
             )}></div>
           </div>
         </div>

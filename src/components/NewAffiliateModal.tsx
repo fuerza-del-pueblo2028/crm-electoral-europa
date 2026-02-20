@@ -6,6 +6,7 @@ import { dbInsert } from "@/lib/dbWrite";
 import { SECCIONALES } from "@/lib/mockData";
 import { X, Save, Loader2, Plus, User, Mail, Phone, MapPin, Briefcase, Calendar, CreditCard, Upload } from "lucide-react";
 import { registrarCambio } from "@/lib/historial";
+import { useAuth } from "@/context/AuthContext";
 
 interface NewAffiliateModalProps {
     isOpen: boolean;
@@ -30,14 +31,15 @@ export function NewAffiliateModal({ isOpen, onClose, onSuccess }: NewAffiliateMo
         cargoOrganizacional: ""
     });
 
-    useState(() => {
-        const role = localStorage.getItem("user_role");
-        const seccional = localStorage.getItem("user_seccional");
-        setUserRole(role);
-        setUserSeccional(seccional);
+    const { user } = useAuth();
 
-        if (role === "operador" && seccional) {
-            setFormData(prev => ({ ...prev, seccional: seccional }));
+    useState(() => {
+        if (user) {
+            setUserRole(user.role);
+            setUserSeccional(user.seccional || null);
+            if (user.role === "operador" && user.seccional) {
+                setFormData(prev => ({ ...prev, seccional: user.seccional! }));
+            }
         }
     });
 

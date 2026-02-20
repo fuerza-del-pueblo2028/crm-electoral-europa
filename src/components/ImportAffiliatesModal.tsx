@@ -6,6 +6,7 @@ import ExcelJS from 'exceljs';
 import { supabase } from "@/lib/supabase";
 import { dbInsert } from "@/lib/dbWrite";
 import { registrarCambio } from "@/lib/historial";
+import { useAuth } from "@/context/AuthContext";
 
 type ImportResult = {
     success: boolean;
@@ -29,11 +30,12 @@ export function ImportAffiliatesModal({ isOpen, onClose, onSuccess }: Props) {
     const [userRole, setUserRole] = useState<string | null>(null);
     const [userSeccional, setUserSeccional] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const { user } = useAuth();
 
     useState(() => {
-        if (isOpen) {
-            setUserRole(localStorage.getItem('user_role'));
-            setUserSeccional(localStorage.getItem('user_seccional'));
+        if (isOpen && user) {
+            setUserRole(user.role);
+            setUserSeccional(user.seccional || null);
         }
     });
 
@@ -204,7 +206,9 @@ export function ImportAffiliatesModal({ isOpen, onClose, onSuccess }: Props) {
                                 detalles: {
                                     origen: 'importacion_masiva',
                                     nombre_completo: `${affiliateData.nombre} ${affiliateData.apellidos}`
-                                }
+                                },
+                                usuarioNombre: user?.nombre,
+                                usuarioEmail: user?.cedula || user?.id
                             });
                         }
 

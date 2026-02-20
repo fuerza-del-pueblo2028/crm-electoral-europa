@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
-import { supabaseAdmin } from '@/lib/supabaseAdmin'; // Usamos admin para verificar credenciales de forma segura
+import { supabaseAdmin } from '@/lib/supabaseAdmin';
 import { signToken } from '@/lib/token';
+import bcrypt from 'bcryptjs';
 
 export async function POST(request: Request) {
     try {
@@ -30,19 +31,44 @@ export async function POST(request: Request) {
         }
 
         let authenticatedUser = null;
+        let requiresPasswordChange = false;
 
-        // Verificar contraseña de Usuario Admin/Operador
-        // NOTA: Idealmente las contraseñas deberían estar hasheadas.
-        // Como paso temporal, verificamos texto plano según lógica actual.
-        if (userData && userData.password === password) {
-            authenticatedUser = {
-                id: userData.id,
-                cedula: userData.cedula,
-                nombre: userData.nombre,
-                rol: userData.rol,
-                seccional: userData.seccional,
-                activo: userData.activo // Include active status
-            };
+        // 1. Verificar si es Usuario (Admin/Operador)
+        if (userData) {
+            let isValid = false;
+
+            if (userData.password_hash) {
+                // Si ya tiene hash, verificar con bcrypt
+                isValid = await bcrypt.compare(password, userData.password_hash);
+            } else if (userData.password === password) {
+                // Migración transparente: si la clave en texto plano coincide, generamos el hash y lo guardamos
+                isValid = true;
+                const newHash = await bcrypt.hash(password, 10);
+                // Si es el primer login tras la migración, le obligamos a cambiarla por seguridad (opcional)
+                requiresPasswordChange = true;
+
+                await supabaseAdmin
+                    .from('usuarios')
+                    .update({
+                        password_hash: newHash,
+                        must_change_password: true
+                    })
+                    .eq('id', userData.id);
+            }
+
+            if (isValid) {
+                authenticatedUser = {
+                    id: userData.id,
+                    cedula: userData.cedula,
+                    nombre: userData.nombre,
+                    rol: userData.rol,
+                    seccional: userData.seccional,
+                    activo: userData.activo
+                };
+                if (userData.must_change_password !== undefined) {
+                    requiresPasswordChange = userData.must_change_password || requiresPasswordChange;
+                }
+            }
         }
 
         // 2. Si no es usuario, buscar en 'afiliados'
@@ -58,20 +84,46 @@ export async function POST(request: Request) {
             }
 
             if (affiliateData) {
-                // Lógica de contraseña para afiliado: últimos 6 dígitos de la cédula
-                const dbCedulaClean = affiliateData.cedula.replace(/-/g, "").trim();
-                const expectedPassword = dbCedulaClean.substring(Math.max(0, dbCedulaClean.length - 6));
+                let isValid = false;
 
-                if (password === expectedPassword) {
+                if (affiliateData.password_hash) {
+                    // Verificación segura con bcrypt
+                    isValid = await bcrypt.compare(password, affiliateData.password_hash);
+                } else {
+                    // Lógica heredada: últimos 6 dígitos de la cédula
+                    const dbCedulaClean = affiliateData.cedula.replace(/-/g, "").trim();
+                    const expectedPassword = dbCedulaClean.substring(Math.max(0, dbCedulaClean.length - 6));
+
+                    if (password === expectedPassword) {
+                        isValid = true;
+                        // Migración transparente: generar hash del password genérico
+                        const newHash = await bcrypt.hash(password, 10);
+
+                        await supabaseAdmin
+                            .from('afiliados')
+                            .update({
+                                password_hash: newHash,
+                                must_change_password: true
+                            })
+                            .eq('id', affiliateData.id);
+
+                        requiresPasswordChange = true;
+                    }
+                }
+
+                if (isValid) {
                     authenticatedUser = {
                         id: affiliateData.id,
                         cedula: affiliateData.cedula,
                         nombre: `${affiliateData.nombre} ${affiliateData.apellidos}`,
                         rol: 'afiliado', // Rol por defecto
-
                         seccional: affiliateData.seccional,
-                        activo: true // Affiliates are active by default if they can login
+                        activo: true
                     };
+                    // Si ya tenía el flag en BD, respetarlo
+                    if (affiliateData.must_change_password !== undefined && affiliateData.password_hash) {
+                        requiresPasswordChange = affiliateData.must_change_password;
+                    }
                 }
             }
         }
@@ -80,10 +132,19 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Cédula o contraseña incorrecta' }, { status: 401 });
         }
 
-        // 3. Generar Token Seguro (JWT)
+        // 4. Crear respuesta (sin cookie si requiere cambio forzado de password)
+        if (requiresPasswordChange) {
+            return NextResponse.json({
+                success: true,
+                requirePasswordChange: true,
+                tempUserId: authenticatedUser.id,
+                tempUserRole: authenticatedUser.rol // Para saber en qué tabla actualizar
+            });
+        }
+
+        // Si NO requiere cambio, procedemos a dar el token JWT real
         const token = await signToken(authenticatedUser);
 
-        // 4. Crear respuesta con Cookie HTTP-Only
         const response = NextResponse.json({
             success: true,
             user: authenticatedUser
